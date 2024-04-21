@@ -34,7 +34,6 @@ with contextlib.suppress(Exception):
 
 manager = KnowledgeManager(
     openai_api_key=OPENAI_API_KEY,
-    file_manager=FileManager(db),
     prompt_handler=prompt_handler,
     response_handler=ResponseStorer(db),
     qdrant_url=QDRANT_URL,
@@ -47,3 +46,4 @@ scenario_manager = RolePlayingScenarioGenerator(OPENAI_API_KEY)
 role_manager = RoleManager(db)
 feedbacks = FeedbackHandler(db, user_manager.get_cls())
 scenario_database = SalesRoleplayScenarioManager(db)
+file_manager = FileManager(db)

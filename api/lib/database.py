@@ -1,4 +1,5 @@
 import contextlib
+import json
 import logging
 from datetime import datetime
 from peewee import *
@@ -12,10 +13,10 @@ from typing import Dict, List, Optional, Union
 class FileManager:
     def __init__(self, db: SqliteDatabase):
         class File(Model):
-            file_name = CharField()
+            file_name = CharField(primary_key=True, unique=True)
             description = CharField(null=True)
             content = TextField(null=True)
-            unique_id = CharField(primary_key=True, unique=True)
+            vector_ids = TextField(null=True)  # Store vector_ids as JSON serialized string
 
             class Meta:
                 database = db
@@ -26,44 +27,60 @@ class FileManager:
         db.create_tables([File], safe=True)
 
     def create_file(
-        self, file_name: str, description: str, content: str, unique_id: str
+        self, file_name: str, description: str, content: str, vector_ids: list
     ):
         with self.db.connection_context():
-            with contextlib.suppress(Exception):
+            with contextlib.suppress(IntegrityError):
                 file = self.model(
                     file_name=file_name,
                     description=description,
                     content=content,
-                    unique_id=unique_id,
+                    vector_ids=json.dumps(vector_ids)  # Serialize the list to a JSON string
                 )
                 file.save(force_insert=True)
 
-    def read_file(self, unique_id: str):
+    def read_file(self, file_name: str):
         with self.db.connection_context():
             try:
-                return self.model.get(self.model.unique_id == unique_id)
-            except DoesNotExist:
+                file = self.model.get(self.model.file_name == file_name)
+                file.vector_ids = json.loads(file.vector_ids) if file.vector_ids else []
+                return file
+            except self.model.DoesNotExist:
                 return None
 
-    def update_file(self, unique_id: str, attributes: dict):
+    def update_file(self, file_name: str, attributes: dict):
         with self.db.connection_context():
-            file = self.model.get(self.model.unique_id == unique_id)
+            file = self.model.get(self.model.file_name == file_name)
             for attr, value in attributes.items():
+                if attr == 'vector_ids' and isinstance(value, list):
+                    value = json.dumps(value)  # Serialize list to JSON before saving
                 setattr(file, attr, value)
             file.save()
 
-    def delete_file(self, unique_id: str):
+    def delete_file(self, file_name: str):
         with self.db.connection_context():
-            file = self.model.get(self.model.unique_id == unique_id)
+            file = self.model.get(self.model.file_name == file_name)
             file.delete_instance()
 
     def get_all_files(self) -> list:
         with self.db.connection_context():
-            return list(self.model.select())
+            files = self.model.select()
+            files_list = []
+            for file in files:
+                # Deserialize the vector_ids field into a list
+                vector_ids_list = json.loads(file.vector_ids) if file.vector_ids else []
+                # Create a dictionary for each file and append it to the list
+                file_dict = {
+                    "file_name": file.file_name,
+                    "description": file.description,
+                    "content": file.content,
+                    "vector_ids": vector_ids_list
+                }
+                files_list.append(file_dict)
+            return files_list
 
     def get_cls(self):
         return self.model
-
 
 class PromptHandler:
     def __init__(self, db: SqliteDatabase, prompt_variables: list[str] = None):
@@ -153,7 +170,6 @@ class PromptHandler:
                 self.update_prompt(main.name, {"is_main": False})
             self.update_prompt(name, {"is_main": True})
 
-
 class ResponseStorer:
     def __init__(self, db: SqliteDatabase):
         class Response(Model):
@@ -240,7 +256,6 @@ class ResponseStorer:
     def get_all_responses_by_prompt(self, prompt: str) -> list:
         with self.db.connection_context():
             return list(self.model.select().where(self.model.prompt == prompt))
-
 
 class Users:
     def __init__(self, db: SqliteDatabase):
@@ -396,7 +411,6 @@ class Users:
                 -1,
             )
 
-
 class RoleManager:
     def __init__(
         self, db
@@ -454,7 +468,6 @@ class RoleManager:
             return list(
                 self.model.select()
             )
-
 
 class SalesRoleplayScenarioManager:
     def __init__(self, db: SqliteDatabase):
@@ -539,7 +552,6 @@ class SalesRoleplayScenarioManager:
     def get_cls(self):
         return self.model
 
-
 class FeedbackHandler:
     def __init__(self, db: SqliteDatabase, user_model: Model):
         class Feedback(Model):
@@ -607,7 +619,7 @@ class FeedbackHandler:
 
 
 if __name__ == "__main__":
-    users = Users(SqliteDatabase("database/database.db"))
+    users = FileManager(SqliteDatabase("database/database.db"))
     users.create_new_user(
         "abdulzain6@gmail.com", "zainZain123", "admin", "Zain", "pakistan", "123"
     )

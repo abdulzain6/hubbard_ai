@@ -1,16 +1,14 @@
 import base64
 import mimetypes
-from fastapi import APIRouter, Depends, HTTPException, UploadFile
 import magic
-from api.auth import has_role, get_current_user
-from api.globals import manager, oauth2_scheme, role_manager
-from typing import Optional
-from fastapi.responses import JSONResponse
-
-from pydantic import BaseModel
-from typing import Optional
-import logging, shutil, tempfile
+import logging, tempfile
 import os
+
+from fastapi import APIRouter, Depends, HTTPException
+from api.auth import has_role, get_current_user
+from api.globals import manager, oauth2_scheme, role_manager, file_manager
+from pydantic import BaseModel
+from typing import Dict, List, Optional
 
 router = APIRouter()
 
@@ -20,7 +18,6 @@ class ChatInput(BaseModel):
     chat_history: list[tuple[str, str]]
     get_highest_ranking_response: bool
     temperature: int
-
 
 class ChatResponse(BaseModel):
     ai_response: str
@@ -68,6 +65,7 @@ def chat(
 @router.post("/injest_data")
 @has_role(allowed_roles=["admin"])
 def injest_data(
+    file_name: str,
     text: Optional[str] = None,
     file: Optional[str] = None,
     description: Optional[str] = None,
@@ -76,6 +74,10 @@ def injest_data(
     if not text and not file:
         logging.error("Both text and file not provided")
         raise HTTPException(status_code=400, detail="Either provide text or file")
+    
+    tmpfile = file_manager.read_file(file_name=file_name)
+    if tmpfile:
+        raise HTTPException(status_code=404, detail="File already exists")
 
     if text and file:
         logging.error("Both text and file provided")
@@ -98,13 +100,44 @@ def injest_data(
                 temp.write(file_data)
                 temp.flush()
                 logging.info(f"File saved temporarily as {temp.name} with detected type {content_type} for ingestion")
-                manager.injest_data_api(file_path=temp.name, description=description)
+                vector_ids, content = manager.injest_data_api(file_path=temp.name)
+                file_manager.create_file(file_name=file_name, description=description, content=content, vector_ids=vector_ids)
         finally:
             if os.path.exists(temp.name):
                 os.unlink(temp.name)  # Ensure the temp file is deleted
                 logging.info(f"Temporary file {temp.name} deleted after ingestion")
     else:
         logging.info("Ingesting data from text input")
-        manager.injest_data_api(text=text, description=description)
+        vector_ids, content = manager.injest_data_api(text=text)
+        file_manager.create_file(file_name=file_name, description=description, content=content, vector_ids=vector_ids)
 
     return {"status": "Data Successfully Ingested!"}
+
+
+@router.get("/files", response_model=List[Dict])
+@has_role(allowed_roles=["admin"])
+def get_all_files(token: str = Depends(oauth2_scheme)):
+    try:
+        files = file_manager.get_all_files()
+        return files
+    except Exception as e:
+        logging.error(f"Failed to retrieve files: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve files")
+
+@router.delete("/files/{file_name}", response_model=Dict)
+@has_role(allowed_roles=["admin"])
+def delete_file(file_name: str, token: str = Depends(oauth2_scheme)):
+    try:
+        file = file_manager.read_file(file_name=file_name)
+        if not file:
+            raise HTTPException(status_code=404, detail="File not found")
+
+        # Assuming manager.delete_ids handles exceptions internally or does not raise any
+        manager.delete_ids(file.vector_ids)
+        file_manager.delete_file(file_name)  # Ensure to delete after all dependent deletions
+        return {"status": "success", "message": f"File '{file_name}' deleted successfully"}
+    except HTTPException as http_exc:
+        raise http_exc
+    except Exception as e:
+        logging.error(f"Failed to delete file '{file_name}': {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")

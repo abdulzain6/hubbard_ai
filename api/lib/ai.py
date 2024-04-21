@@ -17,15 +17,13 @@ from langchain.output_parsers import PydanticOutputParser
 from langchain_core.prompts import PromptTemplate
 
 from . import prompt
-from .database import PromptHandler, FileManager, ResponseStorer
-from .utils import sanitize_filename
+from .database import PromptHandler, ResponseStorer
 from pydantic import BaseModel, Field, field_validator
 
 
 class KnowledgeManager:
     def __init__(
         self,
-        file_manager: FileManager,
         prompt_handler: PromptHandler,
         response_handler: ResponseStorer,
         openai_api_key: str,
@@ -43,16 +41,12 @@ class KnowledgeManager:
         self.qdrant_api_key = qdrant_api_key
         self.docs_limit = docs_limit
         self.unstructured_api_url = unstructured_api_url
-
-        self.file_manager = file_manager
         self.response_handler = response_handler
         self.prompt_handler = prompt_handler
         self.INSIGHTS_INDEX = insights_index_name
         self.chunk_size = chunk_size
         self.unstructured_api_key = unstructured_api_key
-
         self.collection_name = collection_name
-        
         self.prompt_variables = [
             "insights",
             "human_question",
@@ -76,8 +70,11 @@ class KnowledgeManager:
             )
 
     def injest_data_api(
-        self, text: str = "", file_path: str = "", description: str = ""
-    ):  # sourcery skip: class-extract-method
+        self, text: str = "", file_path: str = "", collection_name: str = None
+    ) -> list[str]: 
+        if not collection_name:
+            collection_name = self.collection_name
+            
         if not text and not file_path:
             raise ValueError("No data provided")
 
@@ -101,91 +98,17 @@ class KnowledgeManager:
 
         embeddings = OpenAIEmbeddings(openai_api_key=self.openai_api_key)
         print("Embedding data")
-        if not self.collection_exists(self.collection_name):
-            self.file_manager.create_file(
-                file_path,
-                description,
-                "\n".join([doc.page_content for doc in docs]),
-                self.collection_name,
-            )
-            print("Adding docs to new collection")
-            return Qdrant.from_documents(
-                docs,
-                embeddings,
-                url=self.qdrant_url,
-                prefer_grpc=True,
-                api_key=self.qdrant_api_key,
-                collection_name=self.collection_name,
-            )
-        print("Already exists")
-        qdrant = self.load_vectorstore(self.collection_name)
-        qdrant.add_documents(docs)
-        return qdrant
-
-    def injest_data(
-        self,
-        text: str = "",
-        directory_name: str = "",
-        description: str = "",
-        filetype: str = "",
-        insights: bool = False,
-    ) -> Qdrant:
-        file_name = sanitize_filename(directory_name)
-        if text:
-            with tempfile.NamedTemporaryFile(delete=False) as temp_file:
-                temp_file.write(bytes(text, encoding="utf-8"))
-                temp_file_path = temp_file.name
-                loader = TextLoader(temp_file_path)
-        else:
-            if filetype == "epub":
-                loader_cls = UnstructuredEPubLoader
-                Loader_kwargs = {
-                    "api_key": self.unstructured_api_key,
-                    "url" : self.unstructured_api_url
-                }
-            elif filetype == "pdf":
-                loader_cls = PyPDFLoader
-                Loader_kwargs = {}
-            else:
-                loader_cls = UnstructuredAPIFileLoader
-                Loader_kwargs = {
-                    "api_key": self.unstructured_api_key,
-                    "url" : self.unstructured_api_url
-                }
-            loader = DirectoryLoader(
-                directory_name,
-                loader_cls=loader_cls,
-                loader_kwargs=Loader_kwargs,
-                recursive=True,
-                show_progress=True,
-                use_multithreading=True,
-            )
-
-        docs = loader.load_and_split(
-            RecursiveCharacterTextSplitter(chunk_size=self.chunk_size)
+        qdrant: Qdrant = Qdrant.construct_instance(
+            url=self.qdrant_url,
+            api_key=self.qdrant_api_key,
+            texts=["test"],
+            embedding=embeddings,
+            collection_name=self.collection_name,
+            timeout=50,
+            prefer_grpc=True
         )
-
-        embeddings = OpenAIEmbeddings(openai_api_key=self.openai_api_key)
-        index = self.INSIGHTS_INDEX if insights else self.collection_name
-        if not self.collection_exists(index):
-            self.file_manager.create_file(
-                file_name,
-                description,
-                "\n".join([doc.page_content for doc in docs]),
-                index,
-            )
-            return Qdrant.from_documents(
-                docs,
-                embeddings,
-                url=self.qdrant_url,
-                prefer_grpc=True,
-                api_key=self.qdrant_api_key,
-                collection_name=index,
-            )
         print("Already exists")
-        qdrant = self.load_vectorstore(index)
-        qdrant.add_documents(docs)
-        return qdrant
+        return qdrant.add_documents(docs), "\n".join([doc.page_content for doc in docs])
 
     def load_vectorstore(self, collection_name: str) -> Qdrant:
         client = qdrant_client.QdrantClient(
@@ -337,7 +260,7 @@ class KnowledgeManager:
         )
         insights = chain.run(question=question, answer=response)
         insights = f"\nQuestion: {question}\n Previous Answer: {response} \n Improvements: {insights}"
-        self.injest_data(text=insights, insights=True)
+        self.injest_data_api(text=insights, collection_name=self.INSIGHTS_INDEX)
 
     def docs_to_string(self, docs):
         return "\n\n".join(
@@ -415,12 +338,17 @@ class KnowledgeManager:
         )
         return qdrant.delete_collection(collection_name)
 
-    def delete_data(self, collection_name: str) -> bool:
-        if self.delete_collection(collection_name):
-            self.file_manager.delete_file(collection_name)
-            return True
-        else:
-            return False
+    def delete_ids(self, ids: list[str]) -> bool:
+        client = qdrant_client.QdrantClient(
+            url=self.qdrant_url,
+            prefer_grpc=True,
+            api_key=self.qdrant_api_key,
+        )
+        qdrant = Qdrant(
+            client=client,
+            collection_name=self.collection_name,
+        )
+        return qdrant.delete(ids)
 
     def get_prompt(self, company: str, department: str, company_role: str, prefix: str):
         try:
