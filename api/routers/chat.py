@@ -1,3 +1,4 @@
+import base64
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from api.auth import has_role, get_current_user
 from api.globals import manager, oauth2_scheme, role_manager
@@ -63,32 +64,35 @@ def chat(
 
 
 @router.post("/injest_data")
-@has_role(allowed_roles=["admin"])
 def injest_data(
     text: Optional[str] = None,
-    file: UploadFile = Optional[None],
+    file: Optional[str] = None,
     description: Optional[str] = None,
     token: str = Depends(oauth2_scheme),
 ) -> dict:
     if not text and not file:
-        logging.error("Both text and file not sent")
-        return JSONResponse(
-            status_code=400, content={"detail": "Either provide text or file"}
-        )
+        logging.error("Both text and file not provided")
+        raise HTTPException(status_code=400, detail="Either provide text or file")
+
     if text and file:
-        logging.error("Both text and file sent")
-        return JSONResponse(
-            status_code=400,
-            content={"detail": "Either provide text or file, not both"},
-        )
+        logging.error("Both text and file provided")
+        raise HTTPException(status_code=400, detail="Either provide text or file, not both")
 
     if file:
-        # Extract the extension from the original filename
-        extension = os.path.splitext(file.filename)[1]
-        with tempfile.NamedTemporaryFile(suffix=extension, delete=True) as temp:
-            shutil.copyfileobj(file.file, temp)
-            temp.flush()  # make sure data is written to disk before ingesting
-            manager.injest_data_api(file_path=temp.name, description=description)
+        try:
+            file_data = base64.b64decode(file)
+        except base64.binascii.Error as e:
+            logging.error(f"Base64 decoding failed: {str(e)}")
+            raise HTTPException(status_code=400, detail="Invalid base64 data")
+
+        try:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".tmp") as temp:
+                temp.write(file_data)
+                temp.flush()
+                manager.injest_data_api(file_path=temp.name, description=description)
+        finally:
+            if os.path.exists(temp.name):
+                os.unlink(temp.name)  # Ensure the temp file is deleted
     else:
         manager.injest_data_api(text=text, description=description)
 
