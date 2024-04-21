@@ -133,7 +133,7 @@ class KnowledgeManager:
         self,
         question: str,
         chat_history: list[tuple[str, str]],
-        collection_name: str = "books",
+        collection_name: str = None,
         wait_for_insights: bool = False,
         get_highest_ranking_response: bool = False,
         temperature: int = 0,
@@ -145,6 +145,9 @@ class KnowledgeManager:
         if get_highest_ranking_response:
             if resp := self.response_handler.get_highest_rank_response(question):
                 return resp.response
+        
+        if not collection_name:
+            collection_name = self.collection_name
 
         try:
             vectorstore = self.load_vectorstore(collection_name)
