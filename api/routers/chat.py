@@ -23,7 +23,11 @@ class ChatResponse(BaseModel):
     ai_response: str
     error: str
 
-
+class InjestModel(BaseModel):
+    text: Optional[str] = None
+    file: Optional[str] = None
+    description: Optional[str] = None
+    
 @router.post("/chat", response_model=ChatResponse)
 def chat(
     data: ChatInput,
@@ -66,12 +70,10 @@ def chat(
 @has_role(allowed_roles=["admin"])
 def injest_data(
     file_name: str,
-    text: Optional[str] = None,
-    file: Optional[str] = None,
-    description: Optional[str] = None,
+    data: InjestModel,
     token: str = Depends(oauth2_scheme),
 ) -> dict:
-    if not text and not file:
+    if not data.text and not data.file:
         logging.error("Both text and file not provided")
         raise HTTPException(status_code=400, detail="Either provide text or file")
     
@@ -79,13 +81,13 @@ def injest_data(
     if tmpfile:
         raise HTTPException(status_code=404, detail="File already exists")
 
-    if text and file:
+    if data.text and data.file:
         logging.error("Both text and file provided")
         raise HTTPException(status_code=400, detail="Either provide text or file, not both")
 
-    if file:
+    if data.file:
         try:
-            file_data = base64.b64decode(file)
+            file_data = base64.b64decode(data.file)
         except base64.binascii.Error as e:
             logging.error(f"Base64 decoding failed: {str(e)}")
             raise HTTPException(status_code=400, detail="Invalid base64 data")
@@ -101,15 +103,15 @@ def injest_data(
                 temp.flush()
                 logging.info(f"File saved temporarily as {temp.name} with detected type {content_type} for ingestion")
                 vector_ids, content = manager.injest_data_api(file_path=temp.name)
-                file_manager.create_file(file_name=file_name, description=description, content=content, vector_ids=vector_ids)
+                file_manager.create_file(file_name=file_name, description=data.description, content=content, vector_ids=vector_ids)
         finally:
             if os.path.exists(temp.name):
                 os.unlink(temp.name)  # Ensure the temp file is deleted
                 logging.info(f"Temporary file {temp.name} deleted after ingestion")
     else:
         logging.info("Ingesting data from text input")
-        vector_ids, content = manager.injest_data_api(text=text)
-        file_manager.create_file(file_name=file_name, description=description, content=content, vector_ids=vector_ids)
+        vector_ids, content = manager.injest_data_api(text=data.text)
+        file_manager.create_file(file_name=file_name, description=data.description, content=content, vector_ids=vector_ids)
 
     return {"status": "Data Successfully Ingested!"}
 
