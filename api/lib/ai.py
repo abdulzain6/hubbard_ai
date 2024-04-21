@@ -75,6 +75,7 @@ class KnowledgeManager:
         if not collection_name:
             collection_name = self.collection_name
             
+        print(f"Injesting data to collection: {collection_name}")
         if not text and not file_path:
             raise ValueError("No data provided")
 
@@ -103,7 +104,7 @@ class KnowledgeManager:
             api_key=self.qdrant_api_key,
             texts=["test"],
             embedding=embeddings,
-            collection_name=self.collection_name,
+            collection_name=collection_name,
             timeout=50,
             prefer_grpc=True
         )
