@@ -86,6 +86,7 @@ class KnowledgeManager:
             docs = RecursiveCharacterTextSplitter(
                 chunk_size=self.chunk_size
             ).split_documents(docs)
+            print("Text split")
         else:
             loader = UnstructuredAPIFileLoader(
                 file_path=file_path,
@@ -95,8 +96,11 @@ class KnowledgeManager:
             docs = loader.load_and_split(
                 RecursiveCharacterTextSplitter(chunk_size=self.chunk_size)
             )
+            print("FIle split")
+
 
         embeddings = OpenAIEmbeddings(openai_api_key=self.openai_api_key)
+        print("Embedding data")
         if not self.collection_exists(self.collection_name):
             self.file_manager.create_file(
                 file_path,
@@ -104,6 +108,7 @@ class KnowledgeManager:
                 "\n".join([doc.page_content for doc in docs]),
                 self.collection_name,
             )
+            print("Adding docs to new collection")
             return Qdrant.from_documents(
                 docs,
                 embeddings,
