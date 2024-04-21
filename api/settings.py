@@ -1,0 +1,19 @@
+from dotenv import load_dotenv
+import os
+
+
+load_dotenv()
+
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+QDRANT_URL = os.getenv("QDRANT_URL")
+QDRANT_API_KEY = os.getenv("QDRANT_API_KEY")
+UNSTRUCTURED_API_KEY = os.getenv("UNSTRUCTURED_API_KEY", "")
+JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "keeeeyeeeek")
+JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES"))
+DATABASE_NAME = os.getenv("DATABASE_NAME")
+DATABASE_USER = os.getenv("DATABASE_USER")
+DATABASE_PASSWORD = os.getenv("DATABASE_PASSWORD")
+DATABASE_HOST = os.getenv("DATABASE_HOST")
+DATABASE_PORT = os.getenv("DATABASE_PORT")
+UNSTRUCTURED_URL = os.getenv("UNSTRUCTURED_URL")
