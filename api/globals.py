@@ -40,6 +40,7 @@ manager = KnowledgeManager(
     qdrant_api_key=QDRANT_API_KEY,
     unstructured_api_url=UNSTRUCTURED_URL,
     unstructured_api_key=UNSTRUCTURED_API_KEY,
+    collection_name="books_real"
 )
 
 scenario_manager = RolePlayingScenarioGenerator(OPENAI_API_KEY)
