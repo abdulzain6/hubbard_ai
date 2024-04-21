@@ -1,18 +1,13 @@
 import qdrant_client
-import tempfile
 import threading
-import concurrent.futures
 
 from langchain.schema import Document
-from langchain_community.document_loaders import UnstructuredEPubLoader
 from langchain_community.document_loaders import UnstructuredAPIFileLoader
-from langchain_community.document_loaders import TextLoader, DirectoryLoader, PyPDFLoader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.text_splitter import CharacterTextSplitter
 from langchain.vectorstores.qdrant import Qdrant
 from langchain.chains.llm import LLMChain
 from langchain_openai.embeddings import OpenAIEmbeddings
 from langchain_openai.chat_models import ChatOpenAI
-from langchain.chains import create_extraction_chain
 from langchain.output_parsers import PydanticOutputParser
 from langchain_core.prompts import PromptTemplate
 
@@ -56,19 +51,6 @@ class KnowledgeManager:
             "job",
         ]
         
-    def test_loader(self, text: str):
-        with tempfile.NamedTemporaryFile(delete=False) as temp_file:
-            temp_file.write(bytes(text, encoding="utf-8"))
-            temp_file_path = temp_file.name
-            loader = UnstructuredAPIFileLoader(
-                file_path=temp_file_path,
-                api_key=self.unstructured_api_key,
-                url=self.unstructured_api_url
-            )
-            return loader.load_and_split(
-                RecursiveCharacterTextSplitter(chunk_size=self.chunk_size)
-            )
-
     def injest_data_api(
         self, text: str = "", file_path: str = "", collection_name: str = None
     ) -> list[str]: 
@@ -81,7 +63,7 @@ class KnowledgeManager:
 
         if text:
             docs = [Document(page_content=text, metadata={"source": "injest"})]
-            docs = RecursiveCharacterTextSplitter(
+            docs = CharacterTextSplitter(
                 chunk_size=self.chunk_size
             ).split_documents(docs)
             print("Text split")
@@ -91,9 +73,9 @@ class KnowledgeManager:
                 api_key=self.unstructured_api_key,
                 url=self.unstructured_api_url
             )
-            docs = loader.load_and_split(
-                RecursiveCharacterTextSplitter(chunk_size=self.chunk_size)
-            )
+            docs = loader.load()
+            splitter = CharacterTextSplitter(chunk_size=self.chunk_size)
+            docs = splitter.split_documents(docs)
             print("FIle split")
 
 
