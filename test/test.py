@@ -41,23 +41,34 @@ def ingest_data(url, token, file_name, file_content, description=''):
     response = requests.post(f'{url}/api/v1/injest_data?file_name={file_name}', headers=headers, json=data)
     return response.json()
 
+def upload_files(folder_path: str, url: str):
+    """Upload all files in a folder and keep track of uploaded files."""
+    uploaded_files_path = os.path.join(folder_path, 'uploaded_files.txt')
+    try:
+        with open(uploaded_files_path, 'r') as file:
+            uploaded_files = set(file.read().split(sep="\n"))
+    except FileNotFoundError:
+        uploaded_files = set()
+    
+    print(uploaded_files)
+
+    for file_name in os.listdir(folder_path):
+        file_path = os.path.join(folder_path, file_name)
+        if os.path.isfile(file_path) and file_name not in uploaded_files:
+            print("Uploading ", file_name)
+            file_content = encode_file_to_base64(file_path)
+            response = ingest_data(url, get_access_token(url, 'abdulzain6@gmail.com', 'zainZain123'), file_name, file_content)
+            print(response)
+            # Update the tracking file
+            with open(uploaded_files_path, 'a') as file:
+                file.write(file_name + '\n')
+                
 def main():
     # Configuration variables
     url = 'http://146.190.14.15'
-    username = 'abdulzain6@gmail.com'
-    password = 'zainZain123'
-    file_path = '/home/zain/work/hubbard_ai_upload_files/Hubbard.ai Training Content/Duplicate Books/You Can_t Teach a Kid to Ride a Bike at a Seminar.pdf'
-    
-    # Get the access token
-    token = get_access_token(url, username, password)
+    file_path = '/home/zain/work/hubbard_ai_upload_files/Hubbard.ai Training Content/Duplicate Books'
+    upload_files(file_path, url)
 
-    # Encode the file
-    file_content = encode_file_to_base64(file_path)
-
-    # Upload the file
-    file_name = os.path.basename(file_path)
-    response = ingest_data(url, token, file_name, file_content)
-    print(response)
 
 if __name__ == "__main__":
     main()

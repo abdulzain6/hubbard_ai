@@ -9,6 +9,9 @@ from .globals import user_manager
 from .auth import create_access_token
 from .routers import users, prompts, feedback, chat, roles, scenarios
 import langchain
+import logging
+
+logging.basicConfig(level=logging.INFO)
 
 
 langchain.verbose = True

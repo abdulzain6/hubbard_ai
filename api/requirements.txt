@@ -19,6 +19,6 @@ httpx
 pydantic
 python-multipart
 uvicorn
-unstructured[all]
+unstructured[all-docs]
 python-dotenv
 python-magic

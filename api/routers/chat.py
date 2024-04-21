@@ -27,6 +27,7 @@ class InjestModel(BaseModel):
     text: Optional[str] = None
     file: Optional[str] = None
     description: Optional[str] = None
+    extension: Optional[str] = None
     
 @router.post("/chat", response_model=ChatResponse)
 def chat(
@@ -92,16 +93,11 @@ def injest_data(
             logging.error(f"Base64 decoding failed: {str(e)}")
             raise HTTPException(status_code=400, detail="Invalid base64 data")
 
-        # Use python-magic to determine the file type
-        mime_type = magic.Magic(mime=True)
-        content_type = mime_type.from_buffer(file_data)
-        extension = mimetypes.guess_extension(content_type) or '.unknown'  # Fallback if no extension is guessed
-
         try:
-            with tempfile.NamedTemporaryFile(delete=False, suffix=extension) as temp:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=data.extension) as temp:
                 temp.write(file_data)
                 temp.flush()
-                logging.info(f"File saved temporarily as {temp.name} with detected type {content_type} for ingestion")
+                logging.info(f"File saved temporarily as {temp.name} for ingestion")
                 vector_ids, content = manager.injest_data_api(file_path=temp.name)
                 file_manager.create_file(file_name=file_name, description=data.description, content=content, vector_ids=vector_ids)
         finally:
