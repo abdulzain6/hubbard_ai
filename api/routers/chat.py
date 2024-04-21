@@ -1,5 +1,7 @@
 import base64
+import mimetypes
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
+import magic
 from api.auth import has_role, get_current_user
 from api.globals import manager, oauth2_scheme, role_manager
 from typing import Optional
@@ -64,6 +66,7 @@ def chat(
 
 
 @router.post("/injest_data")
+@has_role(allowed_roles=["admin"])
 def injest_data(
     text: Optional[str] = None,
     file: Optional[str] = None,
@@ -85,15 +88,23 @@ def injest_data(
             logging.error(f"Base64 decoding failed: {str(e)}")
             raise HTTPException(status_code=400, detail="Invalid base64 data")
 
+        # Use python-magic to determine the file type
+        mime_type = magic.Magic(mime=True)
+        content_type = mime_type.from_buffer(file_data)
+        extension = mimetypes.guess_extension(content_type) or '.unknown'  # Fallback if no extension is guessed
+
         try:
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".tmp") as temp:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=extension) as temp:
                 temp.write(file_data)
                 temp.flush()
+                logging.info(f"File saved temporarily as {temp.name} with detected type {content_type} for ingestion")
                 manager.injest_data_api(file_path=temp.name, description=description)
         finally:
             if os.path.exists(temp.name):
                 os.unlink(temp.name)  # Ensure the temp file is deleted
+                logging.info(f"Temporary file {temp.name} deleted after ingestion")
     else:
+        logging.info("Ingesting data from text input")
         manager.injest_data_api(text=text, description=description)
 
     return {"status": "Data Successfully Ingested!"}
