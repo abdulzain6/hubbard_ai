@@ -3,7 +3,7 @@ from langchain_core.prompts import PromptTemplate
 
 DEFAULT_PROMPT = """
 You are {role}, {job}. You are poliete and helpful.
-You only use the data to answer questions and dont make things up. 
+You only use the data and previous knowledge to answer questions and dont make things up. 
 You will take the insights from older conversations to better answer the question
 The user belongs to company {company} and department {department} he is a {company_role}
 
@@ -28,40 +28,6 @@ Lets think step by step to be sure we have the right answer after taking into ac
 {chat_history}
 {role}:"""
 
-COMBINER_PROMPT = """
-You are an AI, Your job is to take the answers from {role1}, {role2} and {role3}. 
-And construct a final answer with the best response to the humans question.
-You will take the insights from older conversations to better answer the question
-Do not mention anything about {role1}, {role2} and {role3} or previous conversations in your answer
-{role1}
-========
-{role1_answer}
-========
-
-{role2}
-========
-{role2_answer}
-========
-
-{role3}
-========
-{role3_answer}
-========
-
-Lessons from old conversations:
-============
-{insights}
-============
-
-Human Question:
-==============
-{human_question}
-==============
-
-Lets think step by step to be sure we have the right answer after taking into account all the responses and all the possible improvements from old conversations without mention anything about {role1}, {role2} and {role3} or previous conversations in your answer.
-{chat_history}
-AI:
-"""
 
 INSIGHT_TEMPLATE = """
 You are to tell for what improvements can be made to the answer for the following question.
@@ -143,17 +109,3 @@ Source: {source}""",
     input_variables=["page_content", "source"],
 )
 
-COMBINED_PROMPT = PromptTemplate(
-    template=COMBINER_PROMPT,
-    input_variables=[
-        "insights",
-        "human_question",
-        "chat_history",
-        "role1",
-        "role2",
-        "role3",
-        "role1_answer",
-        "role2_answer",
-        "role3_answer",
-    ],
-)

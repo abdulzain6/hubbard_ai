@@ -132,7 +132,6 @@ def delete_file(file_name: str, token: str = Depends(oauth2_scheme)):
         if not file:
             raise HTTPException(status_code=404, detail="File not found")
 
-        # Assuming manager.delete_ids handles exceptions internally or does not raise any
         manager.delete_ids(file.vector_ids)
         file_manager.delete_file(file_name)  # Ensure to delete after all dependent deletions
         return {"status": "success", "message": f"File '{file_name}' deleted successfully"}

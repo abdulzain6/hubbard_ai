@@ -8,7 +8,10 @@ from .settings import (
 from .globals import user_manager
 from .auth import create_access_token
 from .routers import users, prompts, feedback, chat, roles, scenarios
+import langchain
 
+
+langchain.verbose = True
 
 app = FastAPI()
 app.add_middleware(

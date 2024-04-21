@@ -133,7 +133,6 @@ class KnowledgeManager:
         self,
         question: str,
         chat_history: list[tuple[str, str]],
-        role_numbers: int = 3,
         collection_name: str = "books",
         wait_for_insights: bool = False,
         get_highest_ranking_response: bool = False,
@@ -147,71 +146,28 @@ class KnowledgeManager:
             if resp := self.response_handler.get_highest_rank_response(question):
                 return resp.response
 
-        chain = LLMChain(
-            prompt=self.get_prompt(company=company, department=department, company_role=role, prefix=prefix),
-            llm=ChatOpenAI(
-                openai_api_key=self.openai_api_key,
-                temperature=temperature,
-                max_tokens=2500,
-                model="gpt-3.5-turbo",
-            ),
-            verbose=True,
-        )
-
-        roles = self.get_job_roles(question, role_numbers)
         try:
             vectorstore = self.load_vectorstore(collection_name)
             documents = vectorstore.similarity_search(question, k=6)
             documents = self._reduce_tokens_below_limit(documents, self.docs_limit)
         except Exception:
             documents = []
-
+            
         try:
             insights = self.docs_to_string(
                 self._reduce_tokens_below_limit(
                     self.load_vectorstore(self.INSIGHTS_INDEX).similarity_search(
                         question, k=2
                     ),
-                    4000,
+                    6000,
                 )
             )
         except Exception as e:
             insights = ""
 
-        def process_role(role, chat_history, insights, documents):
-            try:
-                chat_history = self.format_messages(chat_history, 800, role["job"])
-                result = chain.run(
-                    insights=insights,
-                    human_question=question,
-                    data=self.docs_to_string(documents),
-                    chat_history=chat_history,
-                    role=role["job"],
-                    job=role["responsibility"],
-                )
-                return role["job"], result
-            except Exception as e:
-                return role["job"], "I dont know"
-
-        responses = {}
-        num_threads = 4
-        with concurrent.futures.ThreadPoolExecutor(max_workers=num_threads) as executor:
-            future_to_role = {
-                executor.submit(
-                    process_role, role, chat_history, insights, documents
-                ): role
-                for role in roles
-            }
-            for future in concurrent.futures.as_completed(future_to_role):
-                role = future_to_role[future]
-                try:
-                    result = future.result()
-                    responses[role["job"]] = result
-                except Exception as e:
-                    print(f"An error occurred for role '{role['job']}': {e}")
 
         chain = LLMChain(
-            prompt=prompt.COMBINED_PROMPT,
+            prompt=self.get_prompt(company=company or "unknown", department=department or "unknown", company_role=role or"unknown", prefix=prefix),
             llm=ChatOpenAI(
                 openai_api_key=self.openai_api_key,
                 temperature=temperature,
@@ -219,35 +175,23 @@ class KnowledgeManager:
             ),
             verbose=True,
         )
-        
-        role1 = roles[0]["job"] if len(roles) > 0 else ""
-        role2 = roles[1]["job"] if len(roles) > 1 else ""
-        role3 = roles[2]["job"] if len(roles) > 2 else ""
-
-        role1_answer = responses.get(role1, ("", ""))[1] if role1 else ""
-        role2_answer = responses.get(role2, ("", ""))[1] if role2 else ""
-        role3_answer = responses.get(role3, ("", ""))[1] if role3 else ""
-
-        resp = chain.run(
+        chat_history = self.format_messages(chat_history, 800, "Teacher")
+        result = chain.run(
             insights=insights,
             human_question=question,
-            chat_history=self.format_messages(chat_history, 1000, "AI"),
-            role1=role1,
-            role2=role2,
-            role3=role3,
-            role1_answer=role1_answer,
-            role2_answer=role2_answer,
-            role3_answer=role3_answer,
+            data=self.docs_to_string(documents),
+            chat_history=chat_history,
+            role="Teacher",
+            job="Teach students about sales, based on the data given",
         )
-
-        t = threading.Thread(target=self.store_insights, args={question, resp})
+        t = threading.Thread(target=self.store_insights, args={question, result})
         t.start()
         if wait_for_insights:
             t.join()
 
-        self.response_handler.create_new_response(question, resp)
-        return resp  ## Rank responses
-
+        self.response_handler.create_new_response(question, result)
+        return result
+    
     def store_insights(self, question: str, response: str):
         chain = LLMChain(
             prompt=prompt.INSIGHT_PROMPT,
@@ -282,21 +226,6 @@ class KnowledgeManager:
             )
         document_info = {k: base_info[k] for k in question.input_variables}
         return question.format(**document_info)
-
-    def get_job_roles(self, question: str, role_numbers: int) -> list[dict[str, str]]:
-        llm = ChatOpenAI(temperature=0, openai_api_key=self.openai_api_key)
-        schema = {
-            "properties": {
-                "job": {"type": "string"},
-                "responsibility": {"type": "string"},
-            },
-            "required": ["job", "responsibility"],
-        }
-        chain = create_extraction_chain(schema, llm)
-        return chain.run(
-            f"""Return me {role_numbers} jobs and their responsibility( what they do) that can help answer the following question:
-                        {question}"""
-        )
 
     def format_messages(
         self, chat_history: list[tuple[str, str]], tokens_limit: int, role: str
@@ -347,6 +276,7 @@ class KnowledgeManager:
         qdrant = Qdrant(
             client=client,
             collection_name=self.collection_name,
+            embeddings=OpenAIEmbeddings(openai_api_key=self.openai_api_key)
         )
         return qdrant.delete(ids)
 
