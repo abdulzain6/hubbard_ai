@@ -10,6 +10,7 @@ from langchain_openai.embeddings import OpenAIEmbeddings
 from langchain_openai.chat_models import ChatOpenAI
 from langchain.output_parsers import PydanticOutputParser
 from langchain_core.prompts import PromptTemplate
+from langchain.chat_models.base import BaseChatModel
 
 from . import prompt
 from .database import PromptHandler, ResponseStorer
@@ -25,6 +26,7 @@ class KnowledgeManager:
         qdrant_url: str,
         qdrant_api_key: str,
         unstructured_api_key: str,
+        llm: BaseChatModel,
         insights_index_name: str = "INSIGHTS_INDEX",
         unstructured_api_url: str = None,
         docs_limit: int = 3500,
@@ -50,6 +52,7 @@ class KnowledgeManager:
             "role",
             "job",
         ]
+        self.llm = llm
         
     def injest_data_api(
         self, text: str = "", file_path: str = "", collection_name: str = None
@@ -154,11 +157,7 @@ class KnowledgeManager:
 
         chain = LLMChain(
             prompt=self.get_prompt(company=company or "unknown", department=department or "unknown", company_role=role or"unknown", prefix=prefix),
-            llm=ChatOpenAI(
-                openai_api_key=self.openai_api_key,
-                temperature=temperature,
-                model="gpt-3.5-turbo-16k",
-            ),
+            llm=self.llm,
             verbose=True,
         )
         chat_history = self.format_messages(chat_history, 800, "Teacher")

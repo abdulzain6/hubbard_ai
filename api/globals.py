@@ -12,6 +12,7 @@ from .lib.ai import KnowledgeManager, RolePlayingScenarioGenerator
 from peewee import PostgresqlDatabase
 from fastapi.security import OAuth2PasswordBearer
 from passlib.context import CryptContext
+from langchain_groq import ChatGroq
 from .settings import *
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -40,7 +41,8 @@ manager = KnowledgeManager(
     qdrant_api_key=QDRANT_API_KEY,
     unstructured_api_url=UNSTRUCTURED_URL,
     unstructured_api_key=UNSTRUCTURED_API_KEY,
-    collection_name="books_real_main"
+    collection_name="books_real_main",
+    llm=ChatGroq(temperature=0, model_name="llama3-70b-8192")
 )
 
 scenario_manager = RolePlayingScenarioGenerator(OPENAI_API_KEY)

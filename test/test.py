@@ -26,12 +26,13 @@ def encode_file_to_base64(file_path):
     with open(file_path, 'rb') as file:
         return base64.b64encode(file.read()).decode('utf-8')
 
-def ingest_data(url, token, file_name, file_content, description=''):
+def ingest_data(url, token, file_name, file_content, extension: str, description=''):
     """Send file data to the API."""
     data = {
         'text': '',  # Assuming 'text' is needed but empty
         'file': file_content,
-        'description': description
+        'description': description,
+        "extension" : extension
     }
     headers = {
         'Authorization': f'Bearer {token}',
@@ -39,11 +40,11 @@ def ingest_data(url, token, file_name, file_content, description=''):
         'accept': 'application/json'
     }
     response = requests.post(f'{url}/api/v1/injest_data?file_name={file_name}', headers=headers, json=data)
-    return response.json()
+    return response.text
 
 def upload_files(folder_path: str, url: str):
     """Upload all files in a folder and keep track of uploaded files."""
-    uploaded_files_path = os.path.join(folder_path, 'uploaded_files.txt')
+    uploaded_files_path = 'uploaded_files.txt'
     try:
         with open(uploaded_files_path, 'r') as file:
             uploaded_files = set(file.read().split(sep="\n"))
@@ -54,10 +55,11 @@ def upload_files(folder_path: str, url: str):
 
     for file_name in os.listdir(folder_path):
         file_path = os.path.join(folder_path, file_name)
+        _, extension = os.path.splitext(file_path)
         if os.path.isfile(file_path) and file_name not in uploaded_files:
             print("Uploading ", file_name)
             file_content = encode_file_to_base64(file_path)
-            response = ingest_data(url, get_access_token(url, 'abdulzain6@gmail.com', 'zainZain123'), file_name, file_content)
+            response = ingest_data(url, get_access_token(url, 'abdulzain6@gmail.com', 'zainZain123'), file_name, file_content, extension=extension)
             print(response)
             # Update the tracking file
             with open(uploaded_files_path, 'a') as file:
