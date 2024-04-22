@@ -116,7 +116,7 @@ def get_all_files(token: str = Depends(oauth2_scheme)):
     try:
         files: list[dict] = file_manager.get_all_files()
         for file in files:
-            file.pop("content")
+            file.pop("content", "")
         return files
     except Exception as e:
         logging.error(f"Failed to retrieve files: {str(e)}")
