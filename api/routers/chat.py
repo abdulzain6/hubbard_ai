@@ -17,7 +17,6 @@ class ChatInput(BaseModel):
     question: str
     chat_history: list[tuple[str, str]]
     get_highest_ranking_response: bool
-    temperature: int
 
 class ChatResponse(BaseModel):
     ai_response: str
@@ -47,7 +46,6 @@ def chat(
             ai_response = manager.chat(
                 data.question,
                 data.chat_history,
-                temperature=data.temperature,
                 get_highest_ranking_response=data.get_highest_ranking_response,
                 prefix=prefix,
                 role=current_user.company_role,
@@ -116,7 +114,9 @@ def injest_data(
 @has_role(allowed_roles=["admin"])
 def get_all_files(token: str = Depends(oauth2_scheme)):
     try:
-        files = file_manager.get_all_files()
+        files: list[dict] = file_manager.get_all_files()
+        for file in files:
+            file.pop("content")
         return files
     except Exception as e:
         logging.error(f"Failed to retrieve files: {str(e)}")

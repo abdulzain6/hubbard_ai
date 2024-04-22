@@ -122,7 +122,6 @@ class KnowledgeManager:
         collection_name: str = None,
         wait_for_insights: bool = False,
         get_highest_ranking_response: bool = False,
-        temperature: int = 0,
         company: str = None,
         department: str = None,
         role: str = None,
