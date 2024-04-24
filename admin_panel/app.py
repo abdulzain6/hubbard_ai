@@ -7,7 +7,7 @@ PAGES = {
     "Dashboard": dashboard_page.main,
     "Files" : files.main,
     "AI Chat" : ai_chat.main,
-    "Prompts" : prompts.main
+    "Prompt Templates" : prompts.main
 }
 
 def main():

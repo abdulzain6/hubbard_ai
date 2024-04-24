@@ -112,7 +112,9 @@ class PromptHandler:
 
     def validate_prompt(self, prompt: str) -> bool:
         try:
-            PromptTemplate(template=prompt, input_variables=self.prompt_variables, validate_template=True)
+            for variable in self.input_variables:
+                if f"{{variable}}" not in prompt:
+                    raise ValueError(f"Invalid prompt {variable} not found.")
             return True
         except Exception:
             return False

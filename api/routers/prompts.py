@@ -19,7 +19,7 @@ def create_prompt(data: PromptInput, token: str = Depends(oauth2_scheme)):
 
     
     if not prompt_handler.validate_prompt(data.prompt):
-        raise HTTPException(status_code=400, detail="Prompt must contain the following variables in {}: " + ", ".join([
+        raise HTTPException(status_code=400, detail="Prompt must contain the following variables in wrapped in {}: " + ", ".join([
             "insights", "human_question", "data", "chat_history", "role", "job", "company", "department", "company_role", "prompt_prefix"
         ]))
         
@@ -49,9 +49,10 @@ def update_prompt(name: str, data: PromptUpdateInput, token: str = Depends(oauth
         raise HTTPException(status_code=400, detail="prompt not found")
 
     if not prompt_handler.validate_prompt(data.content):
-            raise HTTPException(status_code=400, detail="Prompt must contain the following variables in {}: " + ", ".join([
-                "insights", "human_question", "data", "chat_history", "role", "job"
-            ]))
+        raise HTTPException(status_code=400, detail="Prompt must contain the following variables in wrapped in {}: " + ", ".join([
+            "insights", "human_question", "data", "chat_history", "role", "job", "company", "department", "company_role", "prompt_prefix"
+        ]))
+        
             
     attributes = data.dict(exclude_unset=True)
     prompt_handler.update_prompt(name, attributes)
