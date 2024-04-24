@@ -25,6 +25,8 @@ def get_chat_response(question: str, chat_history: list, access_token: str) -> s
         return "Failed to get response from AI."
 
 
+
+
 def get_files(access_token: str):
     """Retrieve list of files."""
     headers = {
@@ -64,6 +66,75 @@ def upload_file(file_name: str, file_data: bytes, description: str, access_token
     response = requests.post(f'{API_URL}/api/v1/injest_data?file_name={file_name}', headers=headers, json=data)
     return response.status_code == 200
 
+
+def list_prompts(access_token: str):
+    """List all prompts."""
+    url = f'{API_URL}/api/v1/prompts/list_prompts'
+    headers = {
+        'accept': 'application/json',
+        'Authorization': f'Bearer {access_token}'
+    }
+    response = requests.post(url, headers=headers)
+    print(response.text)
+    if response.status_code == 200:
+        return response.json()['prompts']
+    else:
+        return []
+
+def delete_prompt(prompt_name: str, access_token: str):
+    """Delete a prompt."""
+    url = f'{API_URL}/api/v1/prompts/delete_prompt/{prompt_name}'
+    headers = {
+        'accept': 'application/json',
+        'Authorization': f'Bearer {access_token}'
+    }
+    response = requests.delete(url, headers=headers)
+    print(response.text)
+    return response.status_code == 200
+
+def choose_main_prompt(prompt_name: str, access_token: str):
+    """Set a prompt as the main prompt."""
+    url = f'{API_URL}/api/v1/prompts/choose_main_prompt'
+    headers = {
+        'accept': 'application/json',
+        'Authorization': f'Bearer {access_token}',
+        'Content-Type': 'application/json'
+    }
+    data = {'name': prompt_name}
+    response = requests.post(url, headers=headers, json=data)
+    print(response.text)
+    return response.status_code == 200
+
+def update_prompt(prompt_name: str, new_content: str, access_token: str):
+    """Update a prompt."""
+    url = f'{API_URL}/api/v1/prompts/update_prompt/{prompt_name}'
+    headers = {
+        'accept': 'application/json',
+        'Authorization': f'Bearer {access_token}',
+        'Content-Type': 'application/json'
+    }
+    data = {'content': new_content}
+    response = requests.post(url, headers=headers, json=data)
+    print(response.text)
+    return response.status_code == 200
+
+
+def create_prompt(name: str, content: str, is_main: bool, access_token: str) -> bool:
+    """Create a new prompt."""
+    url = f'{API_URL}/api/v1/prompts/create_prompt'
+    headers = {
+        'accept': 'application/json',
+        'Authorization': f'Bearer {access_token}',
+        'Content-Type': 'application/json'
+    }
+    data = {
+        'name': name,
+        'prompt': content,
+        'is_main': is_main
+    }
+    response = requests.post(url, headers=headers, json=data)
+    print(response.text)
+    return response.status_code == 200, response.text
 
 def get_access_token(username: str, password: str, client_id: str = '', client_secret: str = '') -> str:
     """Retrieve access token from the authentication server."""

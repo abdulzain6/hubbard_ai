@@ -112,7 +112,7 @@ class PromptHandler:
 
     def validate_prompt(self, prompt: str) -> bool:
         try:
-            PromptTemplate(template=prompt, input_variables=self.prompt_variables)
+            PromptTemplate(template=prompt, input_variables=self.prompt_variables, validate_template=True)
             return True
         except Exception:
             return False
