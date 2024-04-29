@@ -20,7 +20,7 @@ def add_role(data: RoleInput, token: str = Depends(oauth2_scheme)):
 @has_role(allowed_roles=["user", "admin"])
 def get_roles(token: str = Depends(oauth2_scheme)):
     roles = role_manager.get_all_roles()
-    return {"roles": [{"name": role.name} for role in roles]}
+    return {"roles": [{"name": role.name, "prompt" : role.prompt_prefix} for role in roles]}
 
 
 @router.get("/{name}")

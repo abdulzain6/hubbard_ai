@@ -4,6 +4,54 @@ import base64
 
 API_URL = 'http://146.190.14.15'
 
+
+def get_roles(access_token: str):
+    """Retrieve all roles."""
+    url = f'{API_URL}/api/v1/roles/'
+    headers = {
+        'accept': 'application/json',
+        'Authorization': f'Bearer {access_token}'
+    }
+    response = requests.get(url, headers=headers)
+    return response.json()['roles'] if response.status_code == 200 else []
+
+def add_role(name: str, prompt_prefix: str, access_token: str):
+    """Add a new role with a prompt prefix."""
+    url = f'{API_URL}/api/v1/roles/'
+    headers = {
+        'accept': 'application/json',
+        'Authorization': f'Bearer {access_token}',
+        'Content-Type': 'application/json'
+    }
+    data = {'name': name, 'prompt': prompt_prefix}
+    response = requests.post(url, headers=headers, json=data)
+    return response.status_code == 200
+
+def update_role(name: str, new_prompt_prefix: str, access_token: str):
+    """Update the prompt prefix for a role."""
+    url = f'{API_URL}/api/v1/roles/{name}'
+    headers = {
+        'accept': 'application/json',
+        'Authorization': f'Bearer {access_token}',
+        'Content-Type': 'application/json'
+    }
+    data = {'prompt_prefix': new_prompt_prefix}
+    response = requests.put(url, headers=headers, json=data)
+    return response.status_code == 200
+
+def delete_role(name: str, access_token: str):
+    """Delete a role."""
+    url = f'{API_URL}/api/v1/roles/{name}'
+    headers = {
+        'accept': 'application/json',
+        'Authorization': f'Bearer {access_token}'
+    }
+    response = requests.delete(url, headers=headers)
+    return response.status_code == 200
+
+
+
+
 def get_chat_response(question: str, chat_history: list, access_token: str) -> str:
     """Send a question to the AI chat API and receive a response."""
     url = f'{API_URL}/api/v1/chat'
