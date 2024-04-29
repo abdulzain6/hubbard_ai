@@ -34,7 +34,7 @@ class DepartmentUpdateInput(BaseModel):
     new_name: str
     
 class RoleUpdateInput(BaseModel):
-    new_name: str
+    prompt_prefix: str
     
 class User(BaseModel):
     email: EmailStr

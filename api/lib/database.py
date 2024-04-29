@@ -450,13 +450,13 @@ class RoleManager:
                 return None
 
     def update_role(
-        self, name: str, new_name: str
+        self, name: str, prompt_prefix: str
     ):
         with self.db.connection_context():
             role = self.model.get(
                 (self.model.name == name)
             )
-            role.name = new_name
+            role.prompt_prefix = prompt_prefix
             role.save()
 
     def delete_role(self, name: str):

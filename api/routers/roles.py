@@ -38,10 +38,7 @@ def update_role(name: str, data: RoleUpdateInput, token: str = Depends(oauth2_sc
     if not role_manager.read_role(name):
         raise HTTPException(status_code=400, detail="Role does not exist")
 
-    if role_manager.read_role(data.new_name) and data.new_name != name:
-        raise HTTPException(status_code=400, detail="Role with new name already exists")
-
-    role_manager.update_role(name, data.new_name)
+    role_manager.update_role(name, data.prompt_prefix)
     return {"status": "Role Successfully Updated!"}
 
 
