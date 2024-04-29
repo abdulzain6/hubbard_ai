@@ -1,5 +1,5 @@
 import streamlit as st
-from components import login, dashboard_page, files, ai_chat, prompts, roles
+from components import login, dashboard_page, files, ai_chat, prompts, roles, user_management
 
 # Define a dictionary of pages
 PAGES = {
@@ -8,7 +8,8 @@ PAGES = {
     "Files" : files.main,
     "AI Chat" : ai_chat.main,
     "Prompt Templates" : prompts.main,
-    "Role Prompt Management" : roles.main
+    "Role Prompt Management" : roles.main,
+    "User Management" : user_management.main
 }
 
 def main():

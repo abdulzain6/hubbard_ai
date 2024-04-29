@@ -4,6 +4,47 @@ import base64
 
 API_URL = 'http://146.190.14.15'
 
+def register_admin(email: str, password: str, name: str, country: str, phone: str, company_role: str, company: str, department: str, access_token: str):
+    """Register a new admin."""
+    url = f'{API_URL}/api/v1/users/register_admin'
+    headers = {
+        'accept': 'application/json',
+        'Authorization': f'Bearer {access_token}',
+        'Content-Type': 'application/json'
+    }
+    data = {
+        'email': email,
+        'password': password,
+        'name': name,
+        'country': country,
+        'phone': phone,
+        'company_role': company_role,
+        'company': company,
+        'department': department
+    }
+    response = requests.post(url, headers=headers, json=data)
+    return response.json(), response.status_code
+
+def delete_user(email: str, access_token: str):
+    """Delete a user."""
+    url = f'{API_URL}/api/v1/users/delete_user/{email}'
+    headers = {
+        'accept': 'application/json',
+        'Authorization': f'Bearer {access_token}'
+    }
+    response = requests.delete(url, headers=headers)
+    return response.json(), response.status_code
+
+def update_user(email: str, updates: dict, access_token: str):
+    """Update user details."""
+    url = f'{API_URL}/api/v1/users/update_user/{email}'
+    headers = {
+        'accept': 'application/json',
+        'Authorization': f'Bearer {access_token}',
+        'Content-Type': 'application/json'
+    }
+    response = requests.post(url, headers=headers, json=updates)
+    return response.json(), response.status_code
 
 def get_roles(access_token: str):
     """Retrieve all roles."""

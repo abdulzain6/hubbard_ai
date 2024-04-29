@@ -8,6 +8,7 @@ from passlib.context import CryptContext
 from langchain_core.prompts import PromptTemplate
 from peewee import Model, CharField, ForeignKeyField, IntegerField, SqliteDatabase
 from typing import Dict, List, Optional, Union
+from playhouse.shortcuts import model_to_dict
 
 
 class FileManager:
@@ -207,6 +208,7 @@ class ResponseStorer:
             else:
                 return 0
 
+
     def create_new_response(self, prompt: str, response: str):
         with self.db.connection_context():
             rank = self.get_max_rank(prompt) + 1
@@ -234,13 +236,21 @@ class ResponseStorer:
             return True
 
     def update_resp(self, prompt: str, rank: int, attributes: dict):
+        print(f"Updating {prompt} Rank: {rank} to {attributes}")
         with self.db.connection_context():
-            resp = self.model.get(
-                self.model.prompt == prompt and self.model.rank == rank
-            )
-            for attr, value in attributes.items():
-                setattr(resp, attr, value)
-            resp.save()
+            try:
+                # Using bitwise '&' to correctly combine conditions
+                resp = self.model.get(
+                    (self.model.prompt == prompt) & (self.model.rank == rank)
+                )
+                for attr, value in attributes.items():
+                    setattr(resp, attr, value)
+                resp.save()
+                print("Update successful.")
+            except self.model.DoesNotExist:
+                print("Response not found.")
+            except Exception as e:
+                print(f"An error occurred: {e}")
 
     def delete_resp(self, prompt: str, rank: int):
         with self.db.connection_context():
@@ -249,16 +259,17 @@ class ResponseStorer:
             )
             resp.delete_instance()
 
+    def get_all_responses_by_prompt(self, prompt: str) -> list:
+        with self.db.connection_context():
+            query = self.model.select().where(self.model.prompt == prompt)
+            return [model_to_dict(response) for response in query]
+
     def get_all_responses(self) -> list:
         with self.db.connection_context():
             return list(self.model.select())
 
     def get_cls(self):
         return self.model
-
-    def get_all_responses_by_prompt(self, prompt: str) -> list:
-        with self.db.connection_context():
-            return list(self.model.select().where(self.model.prompt == prompt))
 
 class Users:
     def __init__(self, db: SqliteDatabase):

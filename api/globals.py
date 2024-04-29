@@ -44,7 +44,7 @@ manager = KnowledgeManager(
     collection_name="books_real_main",
     llm=ChatGroq(temperature=0, model_name="llama3-70b-8192")
 )
-
+response_storer = ResponseStorer(db)
 scenario_manager = RolePlayingScenarioGenerator(OPENAI_API_KEY)
 role_manager = RoleManager(db)
 feedbacks = FeedbackHandler(db, user_manager.get_cls())

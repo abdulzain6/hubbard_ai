@@ -24,7 +24,7 @@ def main():
             if st.button(f"Delete {role['name']}"):
                 if delete_role(role['name'], access_token):
                     st.success(f"Deleted {role['name']} successfully!")
-                    st.experimental_rerun()
+                    st.rerun()
                 else:
                     st.error("Failed to delete role.")
 
@@ -36,7 +36,7 @@ def main():
         if submit_button:
             if add_role(new_name, new_prompt_prefix, access_token):
                 st.success(f"Role {new_name} added successfully!")
-                st.experimental_rerun()
+                st.rerun()
             else:
                 st.error("Failed to add role.")
 
