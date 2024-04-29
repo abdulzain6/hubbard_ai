@@ -22,23 +22,26 @@ def main():
         with col1:
             if st.button("Update", key=f"update_{prompt_key}"):
                 updated_content = st.session_state[f"content_{prompt_key}"]
-                if update_prompt(prompt['name'], updated_content, access_token):
+                success, msg = update_prompt(prompt['name'], updated_content, access_token)
+                if success:
                     st.success("Updated successfully!")
                 else:
-                    st.error("Failed to update.")
+                    st.error(f"Failed to update. Error: {msg['detail']}")
         with col2:
             if st.button("Delete", key=f"delete_{prompt_key}"):
-                if delete_prompt(prompt['name'], access_token):
+                success, msg = delete_prompt(prompt['name'], access_token)
+                if success:
                     st.rerun()
                 else:
-                    st.error("Failed to delete.")
+                    st.error(f"Failed to delete. Error: {msg['detail']}")
         with col3:
             if st.button("Set as Main", key=f"set_main_{prompt_key}"):
-                if choose_main_prompt(prompt['name'], access_token):
+                success, msg = choose_main_prompt(prompt['name'], access_token)
+                if success:
                     st.success("Main prompt Template chosen successfully!")
                     st.rerun()
                 else:
-                    st.error("Failed to set as main.")
+                    st.error(f"Failed to set as main. Error {msg['detail']}")
 
     # Add new prompt
     with st.form("new_prompt"):
@@ -53,7 +56,7 @@ def main():
                 st.success("Prompt Template created successfully!")
                 st.rerun()
             else:
-                st.error(f"Failed to create prompt Template. {msg}")
+                st.error(f"Failed to create prompt Template. {msg['detail']}")
 
 if __name__ == "__main__":
     main()

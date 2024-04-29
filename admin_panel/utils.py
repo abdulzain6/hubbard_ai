@@ -90,7 +90,7 @@ def delete_prompt(prompt_name: str, access_token: str):
     }
     response = requests.delete(url, headers=headers)
     print(response.text)
-    return response.status_code == 200
+    return response.status_code == 200, response.json()
 
 def choose_main_prompt(prompt_name: str, access_token: str):
     """Set a prompt as the main prompt."""
@@ -103,7 +103,7 @@ def choose_main_prompt(prompt_name: str, access_token: str):
     data = {'name': prompt_name}
     response = requests.post(url, headers=headers, json=data)
     print(response.text)
-    return response.status_code == 200
+    return response.status_code == 200, response.json()
 
 def update_prompt(prompt_name: str, new_content: str, access_token: str):
     """Update a prompt."""
@@ -116,7 +116,7 @@ def update_prompt(prompt_name: str, new_content: str, access_token: str):
     data = {'content': new_content}
     response = requests.post(url, headers=headers, json=data)
     print(response.text)
-    return response.status_code == 200
+    return response.status_code == 200, response.json()
 
 
 def create_prompt(name: str, content: str, is_main: bool, access_token: str) -> bool:
@@ -134,7 +134,7 @@ def create_prompt(name: str, content: str, is_main: bool, access_token: str) -> 
     }
     response = requests.post(url, headers=headers, json=data)
     print(response.text)
-    return response.status_code == 200, response.text
+    return response.status_code == 200, response.json()
 
 def get_access_token(username: str, password: str, client_id: str = '', client_secret: str = '') -> str:
     """Retrieve access token from the authentication server."""

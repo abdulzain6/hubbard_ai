@@ -27,7 +27,7 @@ def get_roles(token: str = Depends(oauth2_scheme)):
 @has_role(allowed_roles=["user", "admin"])
 def get_role(name: str, token: str = Depends(oauth2_scheme)):
     if role := role_manager.read_role(name):
-        return {"role": {"name": role.name}}
+        return {"role": {"name": role.name, "prompt" : role.prompt_prefix}}
     else:
         raise HTTPException(status_code=404, detail="Role not found")
     
@@ -43,7 +43,6 @@ def update_role(name: str, data: RoleUpdateInput, token: str = Depends(oauth2_sc
 
     role_manager.update_role(name, data.new_name)
     return {"status": "Role Successfully Updated!"}
-
 
 
 @router.delete("/{name}")

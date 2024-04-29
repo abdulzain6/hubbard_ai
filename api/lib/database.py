@@ -110,14 +110,15 @@ class PromptHandler:
             "prompt_prefix"
         ]
 
-    def validate_prompt(self, prompt: str) -> bool:
-        try:
-            for variable in self.input_variables:
-                if f"{{variable}}" not in prompt:
-                    raise ValueError(f"Invalid prompt {variable} not found.")
-            return True
-        except Exception:
-            return False
+    def validate_prompt(self, prompt: str):
+        errors = []
+        for variable in self.prompt_variables:
+            if "{" + variable + "}" not in prompt:
+                print("{" + variable + "}", prompt, "{" + variable + "}" not in prompt)
+                errors.append(variable)
+        logging.info(f"Errors {errors}")
+        return not bool(errors)
+
 
     def get_prompt_by_name(self, name: str):
         with self.db.connection_context():
