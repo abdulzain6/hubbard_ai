@@ -354,11 +354,10 @@ class RolePlayingScenarioGenerator:
         llm = ChatOpenAI(
             temperature=0.2,
             openai_api_key=self.openai_api_key,
-            model="gpt-3.5-turbo-16k",
+            model="gpt-3.5-turbo",
         )
         chain = LLMChain(llm=llm, prompt=gen_prompt, verbose=True, output_parser=parser, llm_kwargs={"response_format": {"type": "json_object"}})
         return chain.run(theme=theme)
-
 
     def evaluate_scenario(
         self,
@@ -370,7 +369,7 @@ class RolePlayingScenarioGenerator:
         llm = ChatOpenAI(
             temperature=0.2,
             openai_api_key=self.openai_api_key,
-            model="gpt-3.5-turbo-16k",
+            model="gpt-3.5-turbo",
         )
         parser = PydanticOutputParser(pydantic_object=ScenarioEvaluationResult)
         eval_prompt = PromptTemplate(
