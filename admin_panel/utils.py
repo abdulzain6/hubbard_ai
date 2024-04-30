@@ -4,6 +4,91 @@ import base64
 
 API_URL = 'http://146.190.14.15'
 
+def set_rank(prompt: str, rank: int, from_rank: int, access_token: str):
+    """Change the rank of a response."""
+    url = f"{API_URL}/api/v1/responses/set_rank"
+    headers = {
+        'Content-Type': 'application/json',
+        'Authorization': f'Bearer {access_token}'
+    }
+    data = {
+        'prompt': prompt,
+        'rank': rank,
+        'from_rank': from_rank
+    }
+    response = requests.post(url, json=data, headers=headers)
+    return response.json(), response.status_code
+
+def generate_response(question: str, access_token: str):
+    """Generate a response using the chat API."""
+    url = f"{API_URL}/api/v1/chat"
+    headers = {
+        'Content-Type': 'application/json',
+        'Authorization': f'Bearer {access_token}'
+    }
+    data = {
+        'question': question,
+        'chat_history': [],
+        'get_highest_ranking_response': False
+    }
+    response = requests.post(url, json=data, headers=headers)
+    print(response.text)
+    return response.json(), response.status_code
+
+
+def create_response(prompt: str, response: str, access_token: str):
+    """Create a new response."""
+    url = f"{API_URL}/api/v1/responses/create_response"
+    headers = {
+        'Content-Type': 'application/json',
+        'Authorization': f'Bearer {access_token}'
+    }
+    data = {
+        'prompt': prompt,
+        'response': response
+    }
+    response = requests.post(url, json=data, headers=headers)
+    return response.json(), response.status_code
+
+def update_response(prompt: str, rank: int, new_response: str, rank_new: int, access_token: str):
+    """Update an existing response."""
+    url = f"{API_URL}/api/v1/responses/update_response"
+    headers = {
+        'Content-Type': 'application/json',
+        'Authorization': f'Bearer {access_token}'
+    }
+    data = {
+        'prompt': prompt,
+        'rank': rank,
+        'attributes': {'response': new_response, "rank" : rank_new}
+    }
+    response = requests.put(url, json=data, headers=headers)
+    return response.json(), response.status_code
+
+def delete_response(prompt: str, rank: int, access_token: str):
+    """Delete a response."""
+    url = f"{API_URL}/api/v1/responses/delete_response/{prompt}/{rank}"
+    headers = {
+        'Authorization': f'Bearer {access_token}'
+    }
+    response = requests.delete(url, headers=headers)
+    print(response.text)
+    try:
+        res = response.json()
+    except:
+        res = response.text
+    return res, response.status_code
+
+def list_responses(access_token: str, prompt: str):
+    """List all responses."""
+    url = f"{API_URL}/api/v1/responses/responses/{prompt}"
+    headers = {
+        'Authorization': f'Bearer {access_token}'
+    }
+    response = requests.get(url, headers=headers)
+    print(response.json())
+    return response.json(), response.status_code
+
 def register_admin(email: str, password: str, name: str, country: str, phone: str, company_role: str, company: str, department: str, access_token: str):
     """Register a new admin."""
     url = f'{API_URL}/api/v1/users/register_admin'

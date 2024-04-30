@@ -356,7 +356,7 @@ class RolePlayingScenarioGenerator:
             openai_api_key=self.openai_api_key,
             model="gpt-3.5-turbo-16k",
         )
-        chain = LLMChain(llm=llm, prompt=gen_prompt, verbose=True, output_parser=parser)
+        chain = LLMChain(llm=llm, prompt=gen_prompt, verbose=True, output_parser=parser, llm_kwargs={"response_format": {"type": "json_object"}})
         return chain.run(theme=theme)
 
 
@@ -383,7 +383,7 @@ class RolePlayingScenarioGenerator:
             ],
             partial_variables={"format_instructions": parser.get_format_instructions()},
         )
-        chain = LLMChain(llm=llm, prompt=eval_prompt, verbose=True, output_parser=parser)
+        chain = LLMChain(llm=llm, prompt=eval_prompt, verbose=True, output_parser=parser, llm_kwargs={"response_format": {"type": "json_object"}})
         return chain.run(
             scenario=scenario,
             best_response=best_response,
