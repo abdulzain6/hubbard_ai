@@ -4,6 +4,77 @@ import base64
 
 API_URL = 'http://146.190.14.15'
 
+def get_all_scenarios(access_token: str):
+    """Fetch all scenarios from the API."""
+    url = f"{API_URL}/api/v1/scenarios/get_all_scenarios"
+    headers = {
+        'accept': 'application/json',
+        'Authorization': f'Bearer {access_token}'
+    }
+    response = requests.get(url, headers=headers)
+    return response.json(), response.status_code
+
+def create_scenario(data: dict, access_token: str):
+    """Create a new scenario."""
+    url = f"{API_URL}/api/v1/scenarios/create_scenario"
+    headers = {
+        'accept': 'application/json',
+        'Authorization': f'Bearer {access_token}',
+        'Content-Type': 'application/json'
+    }
+    response = requests.post(url, json=data, headers=headers)
+    return response.json(), response.status_code
+
+def update_scenario(scenario_name: str, data: dict, access_token: str):
+    """Update an existing scenario."""
+    url = f"{API_URL}/api/v1/scenarios/update_scenario/{scenario_name}"
+    headers = {
+        'accept': 'application/json',
+        'Authorization': f'Bearer {access_token}',
+        'Content-Type': 'application/json'
+    }
+    response = requests.put(url, json=data, headers=headers)
+    return response.json(), response.status_code
+
+def delete_scenario(scenario_name: str, access_token: str):
+    """Delete a scenario."""
+    url = f"{API_URL}/api/v1/scenarios/delete_scenario/{scenario_name}"
+    headers = {
+        'accept': 'application/json',
+        'Authorization': f'Bearer {access_token}'
+    }
+    response = requests.delete(url, headers=headers)
+    return response.json(), response.status_code
+
+def evaluate_scenario(scenario_name: str, salesman_response: str, access_token: str):
+    """Evaluate a response for a given scenario."""
+    url = f"{API_URL}/api/v1/scenarios/evaluate_scenario"
+    headers = {
+        'accept': 'application/json',
+        'Authorization': f'Bearer {access_token}',
+        'Content-Type': 'application/json'
+    }
+    data = {
+        'scenario_name': scenario_name,
+        'salesman_response': salesman_response
+    }
+    response = requests.post(url, json=data, headers=headers)
+    return response.json(), response.status_code
+
+def generate_scenario(theme: str, access_token: str):
+    """Generate a scenario based on a theme."""
+    url = f"{API_URL}/api/v1/scenarios/generate_scenario"
+    headers = {
+        'accept': 'application/json',
+        'Authorization': f'Bearer {access_token}',
+        'Content-Type': 'application/json'
+    }
+    data = {'theme': theme}
+    response = requests.post(url, json=data, headers=headers)
+    return response.json(), response.status_code
+
+
+
 def set_rank(prompt: str, rank: int, from_rank: int, access_token: str):
     """Change the rank of a response."""
     url = f"{API_URL}/api/v1/responses/set_rank"

@@ -23,3 +23,4 @@ unstructured[all-docs]
 python-dotenv
 python-magic
 langchain-groq
+deepgram-sdk

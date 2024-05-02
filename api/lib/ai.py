@@ -55,7 +55,7 @@ class KnowledgeManager:
         self.llm = llm
         
     def injest_data_api(
-        self, text: str = "", file_path: str = "", collection_name: str = None
+        self, text: str = "", file_path: str = "", collection_name: str = None, weight: int = 1
     ) -> list[str]: 
         if not collection_name:
             collection_name = self.collection_name
@@ -65,7 +65,7 @@ class KnowledgeManager:
             raise ValueError("No data provided")
 
         if text:
-            docs = [Document(page_content=text, metadata={"source": "injest"})]
+            docs = [Document(page_content=text, metadata={"source": "injest", "weight" : weight})]
             docs = CharacterTextSplitter(
                 chunk_size=self.chunk_size
             ).split_documents(docs)
@@ -77,6 +77,13 @@ class KnowledgeManager:
                 url=self.unstructured_api_url
             )
             docs = loader.load()
+            docs = [
+                Document(
+                    page_content=doc.page_content,
+                    metadata={"source": "injest", "weight" : weight}
+                )
+                for doc in docs
+            ]
             splitter = CharacterTextSplitter(chunk_size=self.chunk_size)
             docs = splitter.split_documents(docs)
             print("FIle split")
@@ -107,12 +114,15 @@ class KnowledgeManager:
         )
 
     def _reduce_tokens_below_limit(self, docs: list, docs_token_limit: int):
+        docs = sorted(docs, key=lambda doc: doc.metadata.get('weight', 1), reverse=True)
         num_docs = len(docs)
         tokens = [len(doc.page_content) for doc in docs]
         token_count = sum(tokens[:num_docs])
+
         while token_count > docs_token_limit:
             num_docs -= 1
             token_count -= tokens[num_docs]
+
         return docs[:num_docs]
 
     def chat(

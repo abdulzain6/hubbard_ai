@@ -7,7 +7,7 @@ from .settings import (
 )
 from .globals import user_manager
 from .auth import create_access_token
-from .routers import users, prompts, feedback, chat, roles, scenarios, responses
+from .routers import users, prompts, feedback, chat, roles, scenarios, responses, tts_stt
 import langchain
 import logging
 
@@ -32,6 +32,7 @@ app.include_router(roles.router, prefix="/api/v1/roles")
 app.include_router(chat.router, prefix="/api/v1")
 app.include_router(scenarios.router, prefix="/api/v1/scenarios")
 app.include_router(responses.router, prefix="/api/v1/responses")
+app.include_router(tts_stt.router, prefix="/api/v1/tts_stt")
 
 
 @app.get("/")

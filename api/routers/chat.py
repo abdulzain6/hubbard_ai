@@ -27,6 +27,7 @@ class InjestModel(BaseModel):
     file: Optional[str] = None
     description: Optional[str] = None
     extension: Optional[str] = None
+    weight: Optional[int] = 1
     
 @router.post("/chat", response_model=ChatResponse)
 def chat(
