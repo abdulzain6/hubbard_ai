@@ -171,6 +171,7 @@ class KnowledgeManager:
         prompt = self.get_prompt()
         document_chain = create_stuff_documents_chain(self.llm, prompt)
         messages = self.format_messages(chat_history, 1000)
+        print(messages)
         result = document_chain.invoke(
             {
                 "context": documents,
@@ -235,25 +236,10 @@ class KnowledgeManager:
         tokens_limit: int,
     ) -> List[BaseMessage]:
         messages: List[BaseMessage] = []
-        tokens_used: int = 0
-
-        # Process chat history from most recent to oldest
-        for human_msg, ai_msg in reversed(chat_history):
-            human_tokens = self.llm.get_num_tokens(human_msg)
-            ai_tokens = self.llm.get_num_tokens(ai_msg)
-            total_tokens = human_tokens + ai_tokens
-
-            # Check if both messages can be added without exceeding the token limit
-            if tokens_used + total_tokens <= tokens_limit:
-                # Add AI message first, then Human message to keep order when reversed later
-                messages.append(AIMessage(content=ai_msg))
-                messages.append(HumanMessage(content=human_msg))
-                tokens_used += total_tokens
-            else:
-                break  # Stop if adding the next pair would exceed the token limit
-
-        # Reverse to maintain the original order
-        return list(reversed(messages))
+        for human_msg, ai_msg in chat_history:
+            messages.append(HumanMessage(content=human_msg))
+            messages.append(AIMessage(content=ai_msg))
+        return messages
 
     def collection_exists(self, collection: str) -> bool:
         try:
