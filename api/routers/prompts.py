@@ -19,9 +19,7 @@ def create_prompt(data: PromptInput, token: str = Depends(oauth2_scheme)):
 
     
     if not prompt_handler.validate_prompt(data.prompt):
-        raise HTTPException(status_code=400, detail="Prompt must contain the following variables in wrapped in {}: " + ", ".join([
-            "insights", "human_question", "data", "chat_history", "role", "job", "company", "department", "company_role", "prompt_prefix"
-        ]))
+        raise HTTPException(status_code=400, detail="Prompt must contain the following variables in wrapped in {}: " + ", ".join(["context", "insights", "prompt_prefix", "company","department","company_role"]))
         
     prompt_handler.create_prompt(data.name, data.is_main, data.prompt)
     return {"status": "Prompt Successfully Created!"}

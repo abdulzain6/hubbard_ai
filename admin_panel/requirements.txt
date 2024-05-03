@@ -1,2 +1,3 @@
 requests
 streamlit
+audio-recorder-streamlit

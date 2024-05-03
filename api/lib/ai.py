@@ -1,8 +1,12 @@
+from typing import List, Tuple
 import qdrant_client
 import threading
 
-from langchain.schema import Document
+from langchain.schema import Document, BaseMessage, AIMessage, HumanMessage
 from langchain_community.document_loaders import UnstructuredAPIFileLoader
+from langchain.chains.combine_documents import create_stuff_documents_chain
+from langchain.prompts import MessagesPlaceholder, ChatPromptTemplate
+
 from langchain.text_splitter import CharacterTextSplitter
 from langchain.vectorstores.qdrant import Qdrant
 from langchain.chains.llm import LLMChain
@@ -164,20 +168,24 @@ class KnowledgeManager:
             insights = ""
 
 
-        chain = LLMChain(
-            prompt=self.get_prompt(company=company or "unknown", department=department or "unknown", company_role=role or"unknown", prefix=prefix),
-            llm=self.llm,
-            verbose=True,
+        prompt = self.get_prompt()
+        document_chain = create_stuff_documents_chain(self.llm, prompt)
+        messages = self.format_messages(chat_history, 1000)
+        result = document_chain.invoke(
+            {
+                "context": documents,
+                "insights" : insights,
+                "prompt_prefix" : prefix,
+                "company" : company,
+                "department" : department,
+                "company_role" : role,
+                "messages": [
+                    *messages,
+                    HumanMessage(content=question)
+                ],
+            }
         )
-        chat_history = self.format_messages(chat_history, 800, "Teacher")
-        result = chain.run(
-            insights=insights,
-            human_question=question,
-            data=self.docs_to_string(documents),
-            chat_history=chat_history,
-            role="Teacher",
-            job="Teach students about sales, based on the data given",
-        )
+        
         t = threading.Thread(target=self.store_insights, args={question, result})
         t.start()
         if wait_for_insights:
@@ -222,26 +230,30 @@ class KnowledgeManager:
         return question.format(**document_info)
 
     def format_messages(
-        self, chat_history: list[tuple[str, str]], tokens_limit: int, role: str
-    ) -> str:
-        chat_history = [
-            (f"Human: {history[0]}", f"{role}: {history[1]}")
-            for history in chat_history
-        ]
-        tokens_used = 0
-        cleaned_msgs = []
-        for history in reversed(chat_history):
-            tokens_used += len(history[0]) + len(history[1])
-            if tokens_used > tokens_limit:
-                break
-            else:
-                cleaned_msgs.append((history[0], history[1]))
+        self,
+        chat_history: List[Tuple[str, str]],
+        tokens_limit: int,
+    ) -> List[BaseMessage]:
+        messages: List[BaseMessage] = []
+        tokens_used: int = 0
 
-        return "\n\n".join(
-            reversed(
-                [clean_msg[0] + "\n\n" + clean_msg[1] for clean_msg in cleaned_msgs]
-            )
-        )
+        # Process chat history from most recent to oldest
+        for human_msg, ai_msg in reversed(chat_history):
+            human_tokens = self.llm.get_num_tokens(human_msg)
+            ai_tokens = self.llm.get_num_tokens(ai_msg)
+            total_tokens = human_tokens + ai_tokens
+
+            # Check if both messages can be added without exceeding the token limit
+            if tokens_used + total_tokens <= tokens_limit:
+                # Add AI message first, then Human message to keep order when reversed later
+                messages.append(AIMessage(content=ai_msg))
+                messages.append(HumanMessage(content=human_msg))
+                tokens_used += total_tokens
+            else:
+                break  # Stop if adding the next pair would exceed the token limit
+
+        # Reverse to maintain the original order
+        return list(reversed(messages))
 
     def collection_exists(self, collection: str) -> bool:
         try:
@@ -274,19 +286,27 @@ class KnowledgeManager:
         )
         return qdrant.delete(ids)
 
-    def get_prompt(self, company: str, department: str, company_role: str, prefix: str):
+    def get_prompt(self):
         try:
-            return PromptTemplate(
-                template=self.prompt_handler.get_main_prompt().content,
-                input_variables=self.prompt_variables,
-                partial_variables={"company" : company or "", "department" : department or "", "company_role" : company_role or "", "prompt_prefix" : prefix or ""}
+            return ChatPromptTemplate.from_messages(
+                [
+                    (
+                        "system",
+                        self.prompt_handler.get_main_prompt().content,
+                    ),
+                    MessagesPlaceholder(variable_name="messages"),
+                ]
             )
         except Exception as e:
             print("Problem in getting main question.", e)
-            return PromptTemplate(
-                template=prompt.DEFAULT_PROMPT,
-                input_variables=self.prompt_variables,
-                partial_variables={"company" : company or "", "department" : department or "", "company_role" : company_role or "", "prompt_prefix" : prefix or ""}
+            return ChatPromptTemplate.from_messages(
+                [
+                    (
+                        "system",
+                        prompt.DEFAULT_PROMPT,
+                    ),
+                    MessagesPlaceholder(variable_name="messages"),
+                ]
             )
 
     def add_prompt(self, prompt: str, name: str, is_main: bool) -> bool:

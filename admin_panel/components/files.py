@@ -24,11 +24,12 @@ def main():
     with st.form("file_upload"):
         uploaded_file = st.file_uploader("Choose a file")
         file_description = st.text_input("Description")
+        weight = int(st.number_input("Weight", step=1, format='%d'))
         submit_button = st.form_submit_button("Upload File")
 
         if submit_button and uploaded_file:
             file_data = uploaded_file.getvalue()
-            if upload_file(uploaded_file.name, file_data, file_description, access_token):
+            if upload_file(uploaded_file.name, file_data, file_description, weight, access_token):
                 st.session_state['message'] = f"Uploaded {uploaded_file.name}"
                 st.rerun()
             else:

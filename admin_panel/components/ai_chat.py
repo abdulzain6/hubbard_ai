@@ -3,7 +3,11 @@ from utils import get_chat_response
 
 def main():
     st.title("AI Chatbot")
-
+    
+    access_token = st.session_state.get('access_token', '')
+    if not access_token:
+        st.warning("You are not logged in.")
+        return
     # Initialize chat history
     if "messages" not in st.session_state:
         st.session_state.messages = []

@@ -290,7 +290,7 @@ def delete_file(file_name: str, access_token: str):
     response = requests.delete(f'{API_URL}/api/v1/files/{file_name}', headers=headers)
     return response.status_code == 200
 
-def upload_file(file_name: str, file_data: bytes, description: str, access_token: str) -> bool:
+def upload_file(file_name: str, file_data: bytes, description: str, weight: int, access_token: str) -> bool:
     """Upload a file, extracting the file extension automatically."""
     # Extracting file extension
     _, file_extension = os.path.splitext(file_name)
@@ -305,7 +305,8 @@ def upload_file(file_name: str, file_data: bytes, description: str, access_token
     data = {
         'file': encoded_file,
         'description': description,
-        'extension': file_extension  # Use the extracted extension
+        'extension': file_extension,  # Use the extracted extension,
+        'weight' : weight
     }
     
     response = requests.post(f'{API_URL}/api/v1/injest_data?file_name={file_name}', headers=headers, json=data)
