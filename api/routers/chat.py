@@ -4,11 +4,11 @@ import magic
 import logging, tempfile
 import os
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException
 from api.auth import has_role, get_current_user
 from api.globals import manager, oauth2_scheme, role_manager, file_manager
 from pydantic import BaseModel
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 router = APIRouter()
 
@@ -110,6 +110,45 @@ def injest_data(
 
     return {"status": "Data Successfully Ingested!"}
 
+@router.post("/files/{file_name}", response_model=Dict)
+@has_role(allowed_roles=["admin"])
+def update_metadata_endpoint(file_name: str, metadata: Dict[str, Any] = Body(...), token: str = Depends(oauth2_scheme)):
+    try:
+        # Read the file to get the vector IDs
+        file_data = file_manager.read_file(file_name=file_name)
+        if not file_data:
+            raise ValueError("File not found!")
+            
+        vector_ids = file_data.vector_ids
+        print(vector_ids) #Influence_ The Psychology of Persuasion.epub
+
+        # Update metadata for the vector IDs
+        manager.update_metadata(ids=vector_ids, update_dict=metadata)
+
+        return {"message": f"Metadata for file {file_name} updated successfully."}
+    except Exception as e:
+        print("Error: ", e)
+        raise HTTPException(status_code=500, detail="An error occurred during the operation")
+    
+@router.get("/files-metadata/", response_model=Dict)
+@has_role(allowed_roles=["admin"])
+def get_all_files_metadata(token: str = Depends(oauth2_scheme)):
+    try:
+        metadatas = []
+        files = file_manager.get_all_files()
+        for file in files:
+            vec_ids = file.get("vector_ids", [])
+            if not vec_ids:
+                continue
+            else:
+                metadata = manager.get_file_metadata(vec_ids[0])
+                metadatas.append(
+                    {"metadata" : metadata, "filename" : file["file_name"]}
+                )
+        return {"metadatas" : metadatas}
+    except Exception as e:
+        print("Error: ", e)
+        raise HTTPException(status_code=500, detail="An error occurred during the operation")
 
 @router.get("/files", response_model=List[Dict])
 @has_role(allowed_roles=["admin"])

@@ -15,7 +15,7 @@ def main():
         prompt_key = f"{prompt['name']}_{idx}"  # Ensure unique key by appending index
         st.subheader(prompt['name'])
         st.text(f"Last updated: {prompt['last_updated']}")
-        st.text_area("Content", value=prompt['content'], key=f"content_{prompt_key}")
+        st.text_area("Content", value=prompt['content'], key=f"content_{prompt_key}", height=900)
         st.checkbox("Main prompt Template", value=prompt['is_main'], key=f"main_{prompt_key}")
 
         col1, col2, col3 = st.columns(3)
@@ -46,7 +46,7 @@ def main():
     # Add new prompt
     with st.form("new_prompt"):
         new_name = st.text_input("New Prompt Name", key="new_prompt_name")
-        new_content = st.text_area("Content", key="new_prompt_content")
+        new_content = st.text_area("Content", key="new_prompt_content", height=900)
         submit_new_prompt = st.form_submit_button("Create New Prompt Template")
         new_is_main = st.checkbox("Set as Main Prompt Template")
 

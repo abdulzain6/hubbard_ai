@@ -31,7 +31,7 @@ def main():
     # Add new role
     with st.form("add_role"):
         new_name = st.text_input("Role Name")
-        new_prompt_prefix = st.text_input("Prompt Prefix")
+        new_prompt_prefix = st.text_area("Prompt Prefix", height=700)
         submit_button = st.form_submit_button("Add Role")
         if submit_button:
             if add_role(new_name, new_prompt_prefix, access_token):

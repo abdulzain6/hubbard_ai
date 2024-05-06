@@ -1,36 +1,33 @@
 import streamlit as st
 from utils import get_chat_response
 
-def main():
+
+def main() -> None:
     st.title("AI Chatbot")
+    if st.button("Clear Chat"):
+        st.session_state.chat_history = []
+        st.rerun()
     
     access_token = st.session_state.get('access_token', '')
     if not access_token:
         st.warning("You are not logged in.")
         return
-    # Initialize chat history
-    if "messages" not in st.session_state:
-        st.session_state.messages = []
 
-    # Display chat messages from history
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
+    if "chat_history" not in st.session_state:
+        st.session_state.chat_history = []
 
-    # Handle user input
-    if prompt := st.chat_input("What would you like to discuss?"):
-        # Update chat history with user message
-        st.session_state.messages.append({"role": "user", "content": prompt})
+    for user_msg, ai_msg in st.session_state.chat_history:
+        with st.chat_message("user"):
+            st.markdown(user_msg)
+        with st.chat_message("assistant"):
+            st.markdown(ai_msg)
 
-        # Get AI response
-        chat_history = [[msg["content"], ""] if msg["role"] == "user" else ["", msg["content"]] for msg in st.session_state.messages]
-        response = get_chat_response(prompt, chat_history, st.session_state['access_token'])
-
-        # Update chat history with AI response
-        st.session_state.messages.append({"role": "assistant", "content": response})
-
-        # Force a rerun of the app to update the chat immediately
+    user_input = st.chat_input("What would you like to discuss?")
+    if user_input:
+        response = get_chat_response(user_input, st.session_state.chat_history, access_token)
+        st.session_state.chat_history.append((user_input, response))
         st.rerun()
+
 
 if __name__ == "__main__":
     main()

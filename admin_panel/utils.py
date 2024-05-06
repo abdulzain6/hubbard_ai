@@ -263,6 +263,7 @@ def get_chat_response(question: str, chat_history: list, access_token: str) -> s
         'get_highest_ranking_response': True,
         'temperature': 0
     }
+    print("Data:", data)
     response = requests.post(url, headers=headers, json=data)
     if response.status_code == 200:
         return response.json()['ai_response']
@@ -288,6 +289,7 @@ def delete_file(file_name: str, access_token: str):
         'Authorization': f'Bearer {access_token}'
     }
     response = requests.delete(f'{API_URL}/api/v1/files/{file_name}', headers=headers)
+    print(response.text)
     return response.status_code == 200
 
 def upload_file(file_name: str, file_data: bytes, description: str, weight: int, access_token: str) -> bool:
