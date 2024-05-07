@@ -1,5 +1,5 @@
 import streamlit as st
-from utils import get_files, delete_file, upload_file
+from utils import get_files, delete_file, update_file_weight, upload_file, fetch_files_metadata
 
 def main():
     st.title('File Managementt')
@@ -39,33 +39,41 @@ def main():
     st.header('File List')
     sort_order = st.selectbox("Sort by", ['A to Z', 'Weight (Highest to Lowest)'])
     files = get_files(access_token)
+    metadata, status_code = fetch_files_metadata(access_token)
 
     if files:
         if sort_order == 'A to Z':
             files.sort(key=lambda x: x['file_name'])
         else:
-            files.sort(key=lambda x: x['weight'], reverse=True)
+            files.sort(key=lambda x: metadata.get(x['file_name'], -1), reverse=True)
 
-        selected_files = []
         for file in files:
-            col1, col2 = st.columns([1, 9])
+            col1, col2, col3 = st.columns([1, 7, 2])
             with col1:
-                selected = st.checkbox("Select", key=f"checkbox_{file['file_name']}", label_visibility="hidden")
-                if selected:
-                    selected_files.append(file['file_name'])
+                st.checkbox("Select", key=f"checkbox_{file['file_name']}", label_visibility="hidden")
             with col2:
                 st.text(file['file_name'])
+            with col3:
+                new_weight = st.number_input("Weight", value=metadata.get(file['file_name'], -1), key=f"weight_{file['file_name']}")
+                if new_weight != weight:
+                    if st.button("Update", key=f"update_{file['file_name']}"):
+                        status = update_file_weight(file['file_name'], new_weight, access_token)
+                        if status == 200:
+                            st.success(f"Weight updated for {file['file_name']}")
+                            st.rerun()
+                        else:
+                            st.error(f"Failed to update weight for {file['file_name']}")
 
-
-        if selected_files and st.checkbox("Delete Selected"):
-            if st.button(f"Confirm deletion of {len(selected_files)} selected files?", key="batch_delete_confirm"):
-                print(selected_files)
-                for file_name in selected_files:
-                    if delete_file(file_name, access_token):
-                        st.session_state['message'] += f"Deleted {file_name}\n"
-                    else:
-                        st.error(f"Failed to delete {file_name}")
-                st.rerun()
+        if st.checkbox("Delete Selected"):
+            selected_files = [file['file_name'] for file in files if st.session_state.get(f"checkbox_{file['file_name']}")]
+            if st.button(f"Are you sure you want to delete {len(selected_files)} files."):
+                if selected_files:
+                    for file_name in selected_files:
+                        if delete_file(file_name, access_token):
+                            st.session_state['message'] += f"Deleted {file_name}\n"
+                        else:
+                            st.error(f"Failed to delete {file_name}")
+                    st.rerun()
 
     else:
         st.write("No files to display.")

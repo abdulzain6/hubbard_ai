@@ -30,8 +30,6 @@ db = PostgresqlDatabase(
 prompt_handler = PromptHandler(db)
 user_manager = Users(db)
 
-with contextlib.suppress(Exception):
-    user_manager.create_new_user("abdulzain6@gmail.com", "zainZain123", "admin", "Zain", "pakistan", "123")
 
 manager = KnowledgeManager(
     openai_api_key=OPENAI_API_KEY,
@@ -44,6 +42,9 @@ manager = KnowledgeManager(
     collection_name="books_real_main",
     llm=ChatGroq(temperature=0, model_name="llama3-70b-8192")
 )
+
+with contextlib.suppress(Exception):
+    user_manager.create_new_user("abdulzain6@gmail.com", "zainZain123", "admin", "Zain", "pakistan", "123")
 response_storer = ResponseStorer(db)
 scenario_manager = RolePlayingScenarioGenerator(OPENAI_API_KEY)
 role_manager = RoleManager(db)

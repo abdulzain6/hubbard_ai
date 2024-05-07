@@ -1,8 +1,56 @@
 import os
+from typing import Dict, Tuple
 import requests
 import base64
 
 API_URL = 'http://146.190.14.15'
+
+def update_file_weight(filename: str, new_weight: int, access_token: str) -> int:
+    """
+    Updates the weight of a specific file via a POST request to the API.
+    
+    Args:
+    - filename (str): The name of the file to update.
+    - new_weight (int): The new weight to be assigned to the file.
+    - access_token (str): Bearer token for authorization.
+    
+    Returns:
+    - int: The HTTP status code of the response.
+    """
+    url = f"{API_URL}/api/v1/files/{filename}"
+    headers = {
+        'accept': 'application/json',
+        'Authorization': f'Bearer {access_token}',
+        'Content-Type': 'application/json'
+    }
+    payload = {'weight': new_weight}
+    response = requests.post(url, headers=headers, json=payload)
+    print(response.text)
+    return response.status_code
+
+def fetch_files_metadata(access_token: str) -> Tuple[Dict[str, int], int]:
+    """
+    Fetches files metadata from the API and returns a dictionary with filenames as keys and weights as values.
+    
+    Args:
+    - api_url (str): The base URL of the API.
+    - access_token (str): Bearer token for authorization.
+    
+    Returns:
+    - Tuple[Dict[str, int], int]: A tuple containing the dictionary of filenames and weights, and the HTTP status code.
+    """
+    url = f"{API_URL}/api/v1/files-metadata/"
+    headers = {
+        'accept': 'application/json',
+        'Authorization': f'Bearer {access_token}'
+    }
+    response = requests.get(url, headers=headers)
+    response_data = response.json()
+
+    # Extracting filenames and their corresponding weights into a dictionary
+    files_metadata = {item['filename']: item['metadata']['weight'] for item in response_data.get('metadatas', [])}
+    print(response.text)
+    return files_metadata, response.status_code
 
 def get_all_scenarios(access_token: str):
     """Fetch all scenarios from the API."""

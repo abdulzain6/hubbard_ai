@@ -17,6 +17,7 @@ class ChatInput(BaseModel):
     question: str
     chat_history: list[tuple[str, str]]
     get_highest_ranking_response: bool
+    role: str
 
 class ChatResponse(BaseModel):
     ai_response: str
@@ -35,8 +36,8 @@ def chat(
     token: str = Depends(oauth2_scheme),
     current_user=Depends(get_current_user),
 ):
-    if not (role := role_manager.read_role(current_user.company_role)):
-        prefix = ""
+    if not (role := role_manager.read_role(data.role)):
+        raise HTTPException(404, detail="Role not found")
     else:
         prefix = role.prompt_prefix
 
