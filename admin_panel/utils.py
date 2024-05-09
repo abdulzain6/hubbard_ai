@@ -3,7 +3,7 @@ from typing import Dict, Tuple
 import requests
 import base64
 
-API_URL = 'http://localhost:8000'
+API_URL = 'http://146.190.14.15'
 
 def update_file_metadata(filename: str, update_dict: dict, access_token: str) -> int:
     """
