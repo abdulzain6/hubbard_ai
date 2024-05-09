@@ -39,7 +39,9 @@ jobs:
         run: doctl kubernetes cluster kubeconfig save --expiry-seconds 600 k8s-1-28-2-do-0-sfo3-1696350433358
 
       - name: Deploy to DigitalOcean Kubernetes
-        run: kubectl set image deployment/admin-panel admin-panel=registry.digitalocean.com/container-hubbard/hubbard_admin:${{ env.IMAGE_TAG }} -n default && kubectl rollout restart deployment admin-panel -n default
+        run: |
+            kubectl set image deployment/admin-panel hubbard-admin=registry.digitalocean.com/container-hubbard/hubbard_admin:${{ env.IMAGE_TAG }} -n default
+            kubectl rollout restart deployment/admin-panel -n default
 
       - name: Verify deployment
         run: kubectl rollout status deployment/admin-panel -n default
