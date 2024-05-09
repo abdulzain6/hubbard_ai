@@ -99,7 +99,7 @@ class PromptHandler:
         db.connect(reuse_if_open=True)
         db.create_tables([Prompt], safe=True)
         self.prompt_variables = prompt_variables or [
-            "context", "insights", "prompt_prefix", "company","department","company_role"
+            "context", "insights", "prompt_prefix","company_role"
         ]
 
     def validate_prompt(self, prompt: str):

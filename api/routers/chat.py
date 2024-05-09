@@ -1,14 +1,13 @@
 import base64
-import mimetypes
-import magic
 import logging, tempfile
 import os
 
-from fastapi import APIRouter, Body, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException, BackgroundTasks
 from api.auth import has_role, get_current_user
 from api.globals import manager, oauth2_scheme, role_manager, file_manager
 from pydantic import BaseModel
 from typing import Any, Dict, List, Optional
+
 
 router = APIRouter()
 
@@ -28,13 +27,17 @@ class InjestModel(BaseModel):
     file: Optional[str] = None
     description: Optional[str] = None
     extension: Optional[str] = None
-    weight: Optional[int] = 1
+    weight: int = 1
+    role: str
+  
+  
+  
     
 @router.post("/chat", response_model=ChatResponse)
 def chat(
     data: ChatInput,
+    background_tasks: BackgroundTasks,
     token: str = Depends(oauth2_scheme),
-    current_user=Depends(get_current_user),
 ):
     if not (role := role_manager.read_role(data.role)):
         raise HTTPException(404, detail="Role not found")
@@ -46,13 +49,11 @@ def chat(
         try:
             error = ""
             ai_response = manager.chat(
-                data.question,
-                data.chat_history,
+                question=data.question,
+                chat_history=data.chat_history,
                 get_highest_ranking_response=data.get_highest_ranking_response,
                 prefix=prefix,
-                role=current_user.company_role,
-                department=current_user.department,
-                company=current_user.company,
+                role=data.role,
             )
             if not ai_response:
                 raise HTTPException(status_code=400, detail="Chat operation failed")
@@ -61,10 +62,12 @@ def chat(
             error = str(e)
             ai_response = ""
 
+        background_tasks.add_task(manager.store_insights, data.question, ai_response)
         return ChatResponse(ai_response=ai_response, error=error)
 
     resp = get_chat(token=token)
     return resp
+
 
 
 @router.post("/injest_data")
@@ -98,7 +101,7 @@ def injest_data(
                 temp.write(file_data)
                 temp.flush()
                 logging.info(f"File saved temporarily as {temp.name} for ingestion")
-                vector_ids, content = manager.injest_data_api(file_path=temp.name)
+                vector_ids, content = manager.injest_data_api(file_path=temp.name, weight=data.weight, role=data.role)
                 file_manager.create_file(file_name=file_name, description=data.description, content=content, vector_ids=vector_ids)
         finally:
             if os.path.exists(temp.name):
@@ -106,7 +109,7 @@ def injest_data(
                 logging.info(f"Temporary file {temp.name} deleted after ingestion")
     else:
         logging.info("Ingesting data from text input")
-        vector_ids, content = manager.injest_data_api(text=data.text)
+        vector_ids, content = manager.injest_data_api(text=data.text, weight=data.weight, role=data.role)
         file_manager.create_file(file_name=file_name, description=data.description, content=content, vector_ids=vector_ids)
 
     return {"status": "Data Successfully Ingested!"}
@@ -158,6 +161,7 @@ def get_all_files(token: str = Depends(oauth2_scheme)):
         files: list[dict] = file_manager.get_all_files()
         for file in files:
             file.pop("content", "")
+            file.pop("vector_ids", [])
         return files
     except Exception as e:
         logging.error(f"Failed to retrieve files: {str(e)}")

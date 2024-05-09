@@ -1,3 +1,4 @@
+from langchain.globals import set_verbose
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm
@@ -7,14 +8,12 @@ from .settings import (
 )
 from .globals import user_manager
 from .auth import create_access_token
-from .routers import users, prompts, feedback, chat, roles, scenarios, responses, tts_stt
-import langchain
+from .routers import users, prompts, chat, roles, scenarios, responses, tts_stt
 import logging
 
 logging.basicConfig(level=logging.INFO)
 
-
-langchain.verbose = True
+set_verbose(True)
 
 app = FastAPI()
 app.add_middleware(
@@ -27,17 +26,12 @@ app.add_middleware(
 
 app.include_router(users.router, prefix="/api/v1/users")
 app.include_router(prompts.router, prefix="/api/v1/prompts")
-app.include_router(feedback.router, prefix="/api/v1/feedback")
 app.include_router(roles.router, prefix="/api/v1/roles")
 app.include_router(chat.router, prefix="/api/v1")
 app.include_router(scenarios.router, prefix="/api/v1/scenarios")
 app.include_router(responses.router, prefix="/api/v1/responses")
 app.include_router(tts_stt.router, prefix="/api/v1/tts_stt")
 
-
-@app.get("/")
-def hello():
-    return {"hello" : "world"}
 
 @app.post("/token")
 def login_for_access_token(user_data: OAuth2PasswordRequestForm = Depends()):

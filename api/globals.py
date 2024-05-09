@@ -5,7 +5,6 @@ from .lib.database import (
     PromptHandler,
     ResponseStorer,
     RoleManager,
-    FeedbackHandler,
     SalesRoleplayScenarioManager
 )
 from .lib.ai import KnowledgeManager, RolePlayingScenarioGenerator
@@ -40,14 +39,14 @@ manager = KnowledgeManager(
     unstructured_api_url=UNSTRUCTURED_URL,
     unstructured_api_key=UNSTRUCTURED_API_KEY,
     collection_name="books_real_main",
-    llm=ChatGroq(temperature=0, model_name="llama3-70b-8192")
+    llm=ChatGroq(temperature=0, model_name="llama3-70b-8192", verbose=True)
 )
 
 with contextlib.suppress(Exception):
     user_manager.create_new_user("abdulzain6@gmail.com", "zainZain123", "admin", "Zain", "pakistan", "123")
+
 response_storer = ResponseStorer(db)
 scenario_manager = RolePlayingScenarioGenerator(OPENAI_API_KEY)
 role_manager = RoleManager(db)
-feedbacks = FeedbackHandler(db, user_manager.get_cls())
 scenario_database = SalesRoleplayScenarioManager(db)
 file_manager = FileManager(db)

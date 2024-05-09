@@ -1,7 +1,5 @@
 from typing import Dict, List, Optional, Tuple
-import qdrant_client
 from qdrant_client.http.models import OverwritePayloadOperation, SetPayload
-import threading
 
 from langchain.schema import Document, BaseMessage, AIMessage, HumanMessage
 from langchain_community.document_loaders import UnstructuredAPIFileLoader
@@ -21,6 +19,8 @@ from . import prompt
 from .database import PromptHandler, ResponseStorer
 from pydantic import BaseModel, Field, field_validator
 
+import qdrant_client
+import time
 
 class KnowledgeManager:
     def __init__(
@@ -60,8 +60,14 @@ class KnowledgeManager:
         self.llm = llm
         
     def injest_data_api(
-        self, text: str = "", file_path: str = "", collection_name: str = None, weight: int = 1
+        self,
+        role: str,
+        text: str = "",
+        file_path: str = "",
+        collection_name: str = None,
+        weight: int = 1,
     ) -> list[str]: 
+        
         if not collection_name:
             collection_name = self.collection_name
             
@@ -70,11 +76,11 @@ class KnowledgeManager:
             raise ValueError("No data provided")
 
         if text:
-            docs = [Document(page_content=text, metadata={"source": "injest", "weight" : weight})]
+            docs = [Document(page_content=text, metadata={"weight" : weight, "role" : role})]
             docs = CharacterTextSplitter(
                 chunk_size=self.chunk_size
             ).split_documents(docs)
-            print("Text split")
+
         else:
             loader = UnstructuredAPIFileLoader(
                 file_path=file_path,
@@ -85,13 +91,12 @@ class KnowledgeManager:
             docs = [
                 Document(
                     page_content=doc.page_content,
-                    metadata={"source": "injest", "weight" : weight}
+                    metadata={"weight" : weight, "role" : role}
                 )
                 for doc in docs
             ]
             splitter = CharacterTextSplitter(chunk_size=self.chunk_size)
             docs = splitter.split_documents(docs)
-            print("FIle split")
 
 
         embeddings = OpenAIEmbeddings(openai_api_key=self.openai_api_key)
@@ -105,12 +110,11 @@ class KnowledgeManager:
             timeout=50,
             prefer_grpc=True
         )
-        print("Already exists")
         return qdrant.add_documents(docs), "\n".join([doc.page_content for doc in docs])
 
     def load_vectorstore(self, collection_name: str) -> Qdrant:
         client = qdrant_client.QdrantClient(
-            url=self.qdrant_url, api_key=self.qdrant_api_key, prefer_grpc=True
+            url=self.qdrant_url, api_key=self.qdrant_api_key, prefer_grpc=True, timeout=3
         )
         return Qdrant(
             client=client,
@@ -134,14 +138,12 @@ class KnowledgeManager:
         self,
         question: str,
         chat_history: list[tuple[str, str]],
+        role: str,
+        prefix: str,
         collection_name: str = None,
-        wait_for_insights: bool = False,
         get_highest_ranking_response: bool = False,
-        company: str = None,
-        department: str = None,
-        role: str = None,
-        prefix: str = None
     ) -> str:
+        
         if get_highest_ranking_response:
             if resp := self.response_handler.get_highest_rank_response(question):
                 return resp.response
@@ -150,12 +152,20 @@ class KnowledgeManager:
             collection_name = self.collection_name
 
         try:
+            start_vectorstore = time.time()
             vectorstore = self.load_vectorstore(collection_name)
-            documents = vectorstore.similarity_search(question, k=6)
+            documents = vectorstore.similarity_search(question, k=2, filter={"role" : role})
+            if not documents:
+                print(f"Documents not found for role {role}. Defaulting to all data")
+                documents = vectorstore.similarity_search(question, k=2)
+
             documents = self._reduce_tokens_below_limit(documents, self.docs_limit)
+            print(f"Time taken for data loading: {time.time() - start_vectorstore}")
         except Exception:
             documents = []
-            
+        
+        print(documents)    
+        
         try:
             insights = self.docs_to_string(
                 self._reduce_tokens_below_limit(
@@ -172,27 +182,22 @@ class KnowledgeManager:
         prompt = self.get_prompt()
         document_chain = create_stuff_documents_chain(self.llm, prompt)
         messages = self.format_messages(chat_history, 1000)
-        print(messages)
+        
+        start_chain = time.time()
         result = document_chain.invoke(
             {
                 "context": documents,
                 "insights" : insights,
                 "prompt_prefix" : prefix,
-                "company" : company,
-                "department" : department,
                 "company_role" : role,
                 "messages": [
                     *messages,
                     HumanMessage(content=question)
                 ],
-            }
+            },
+            config={"verbose" : True}
         )
-        
-        t = threading.Thread(target=self.store_insights, args={question, result})
-        t.start()
-        if wait_for_insights:
-            t.join()
-
+        print(f"Time taken for inference: {time.time() - start_chain}")
         self.response_handler.create_new_response(question, result)
         return result
     
@@ -208,7 +213,7 @@ class KnowledgeManager:
         )
         insights = chain.run(question=question, answer=response)
         insights = f"\nQuestion: {question}\n Previous Answer: {response} \n Improvements: {insights}"
-        self.injest_data_api(text=insights, collection_name=self.INSIGHTS_INDEX)
+        self.injest_data_api(text=insights, collection_name=self.INSIGHTS_INDEX, role="")
 
     def docs_to_string(self, docs):
         return "\n\n".join(
@@ -374,7 +379,6 @@ class KnowledgeManager:
             "role",
             "job",
         """)
-            return False
 
     def choose_main_prompt(self, name: str) -> bool:
         try:

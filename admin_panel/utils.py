@@ -3,9 +3,9 @@ from typing import Dict, Tuple
 import requests
 import base64
 
-API_URL = 'http://146.190.14.15'
+API_URL = 'http://localhost:8000'
 
-def update_file_weight(filename: str, new_weight: int, access_token: str) -> int:
+def update_file_metadata(filename: str, update_dict: dict, access_token: str) -> int:
     """
     Updates the weight of a specific file via a POST request to the API.
     
@@ -23,10 +23,10 @@ def update_file_weight(filename: str, new_weight: int, access_token: str) -> int
         'Authorization': f'Bearer {access_token}',
         'Content-Type': 'application/json'
     }
-    payload = {'weight': new_weight}
-    response = requests.post(url, headers=headers, json=payload)
+    response = requests.post(url, headers=headers, json=update_dict)
     print(response.text)
     return response.status_code
+
 
 def fetch_files_metadata(access_token: str) -> Tuple[Dict[str, int], int]:
     """
@@ -48,7 +48,7 @@ def fetch_files_metadata(access_token: str) -> Tuple[Dict[str, int], int]:
     response_data = response.json()
 
     # Extracting filenames and their corresponding weights into a dictionary
-    files_metadata = {item['filename']: item['metadata']['weight'] for item in response_data.get('metadatas', [])}
+    files_metadata = {item['filename']: item['metadata'] for item in response_data.get('metadatas', [])}
     print(response.text)
     return files_metadata, response.status_code
 
@@ -297,7 +297,7 @@ def delete_role(name: str, access_token: str):
 
 
 
-def get_chat_response(question: str, chat_history: list, access_token: str) -> str:
+def get_chat_response(question: str, chat_history: list, access_token: str, role: str) -> str:
     """Send a question to the AI chat API and receive a response."""
     url = f'{API_URL}/api/v1/chat'
     headers = {
@@ -309,7 +309,8 @@ def get_chat_response(question: str, chat_history: list, access_token: str) -> s
         'question': question,
         'chat_history': chat_history,
         'get_highest_ranking_response': True,
-        'temperature': 0
+        'temperature': 0,
+        "role" : role
     }
     print("Data:", data)
     response = requests.post(url, headers=headers, json=data)
@@ -340,7 +341,7 @@ def delete_file(file_name: str, access_token: str):
     print(response.text)
     return response.status_code == 200
 
-def upload_file(file_name: str, file_data: bytes, description: str, weight: int, access_token: str) -> bool:
+def upload_file(file_name: str, file_data: bytes, description: str, weight: int, role: str, access_token: str) -> bool:
     """Upload a file, extracting the file extension automatically."""
     # Extracting file extension
     _, file_extension = os.path.splitext(file_name)
@@ -356,7 +357,8 @@ def upload_file(file_name: str, file_data: bytes, description: str, weight: int,
         'file': encoded_file,
         'description': description,
         'extension': file_extension,  # Use the extracted extension,
-        'weight' : weight
+        'weight' : weight,
+        "role" : role
     }
     
     response = requests.post(f'{API_URL}/api/v1/injest_data?file_name={file_name}', headers=headers, json=data)
