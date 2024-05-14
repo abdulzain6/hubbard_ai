@@ -52,49 +52,9 @@ def fetch_files_metadata(access_token: str) -> Tuple[Dict[str, int], int]:
     print(response.text)
     return files_metadata, response.status_code
 
-def get_all_scenarios(access_token: str):
-    """Fetch all scenarios from the API."""
-    url = f"{API_URL}/api/v1/scenarios/get_all_scenarios"
-    headers = {
-        'accept': 'application/json',
-        'Authorization': f'Bearer {access_token}'
-    }
-    response = requests.get(url, headers=headers)
-    return response.json(), response.status_code
-
-def create_scenario(data: dict, access_token: str):
-    """Create a new scenario."""
-    url = f"{API_URL}/api/v1/scenarios/create_scenario"
-    headers = {
-        'accept': 'application/json',
-        'Authorization': f'Bearer {access_token}',
-        'Content-Type': 'application/json'
-    }
-    response = requests.post(url, json=data, headers=headers)
-    return response.json(), response.status_code
-
-def update_scenario(scenario_name: str, data: dict, access_token: str):
-    """Update an existing scenario."""
-    url = f"{API_URL}/api/v1/scenarios/update_scenario/{scenario_name}"
-    headers = {
-        'accept': 'application/json',
-        'Authorization': f'Bearer {access_token}',
-        'Content-Type': 'application/json'
-    }
-    response = requests.put(url, json=data, headers=headers)
-    return response.json(), response.status_code
-
-def delete_scenario(scenario_name: str, access_token: str):
-    """Delete a scenario."""
-    url = f"{API_URL}/api/v1/scenarios/delete_scenario/{scenario_name}"
-    headers = {
-        'accept': 'application/json',
-        'Authorization': f'Bearer {access_token}'
-    }
-    response = requests.delete(url, headers=headers)
-    return response.json(), response.status_code
-
-def evaluate_scenario(scenario_name: str, salesman_response: str, access_token: str):
+def evaluate_scenario(scenario_name: str, scenario_description: str, scenario_text: str,
+                      best_response: str, explanation: str, difficulty: str, importance: str,
+                      salesman_response: str, access_token: str):
     """Evaluate a response for a given scenario."""
     url = f"{API_URL}/api/v1/scenarios/evaluate_scenario"
     headers = {
@@ -103,8 +63,16 @@ def evaluate_scenario(scenario_name: str, salesman_response: str, access_token: 
         'Content-Type': 'application/json'
     }
     data = {
-        'scenario_name': scenario_name,
-        'salesman_response': salesman_response
+        "scenario": {
+            "name": scenario_name,
+            "description": scenario_description,
+            "scenario": scenario_text,
+            "best_response": best_response,
+            "explanation": explanation,
+            "difficulty": difficulty,
+            "importance": importance
+        },
+        "salesman_response": salesman_response
     }
     response = requests.post(url, json=data, headers=headers)
     return response.json(), response.status_code

@@ -12,6 +12,7 @@ from peewee import PostgresqlDatabase
 from fastapi.security import OAuth2PasswordBearer
 from passlib.context import CryptContext
 from langchain_groq import ChatGroq
+from langchain_openai import ChatOpenAI
 from .settings import *
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -39,14 +40,13 @@ manager = KnowledgeManager(
     unstructured_api_url=UNSTRUCTURED_URL,
     unstructured_api_key=UNSTRUCTURED_API_KEY,
     collection_name="books_real_main",
-    llm=ChatGroq(temperature=0, model_name="llama3-70b-8192", verbose=True)
+    llm=ChatOpenAI(model="gpt-4o", temperature=0.5)
 )
 
 with contextlib.suppress(Exception):
     user_manager.create_new_user("abdulzain6@gmail.com", "zainZain123", "admin", "Zain", "pakistan", "123")
 
 response_storer = ResponseStorer(db)
-scenario_manager = RolePlayingScenarioGenerator(OPENAI_API_KEY)
+scenario_manager = RolePlayingScenarioGenerator(ChatOpenAI(model="gpt-4o", temperature=0.5))
 role_manager = RoleManager(db)
-scenario_database = SalesRoleplayScenarioManager(db)
 file_manager = FileManager(db)

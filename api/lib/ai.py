@@ -419,9 +419,10 @@ class ScenarioEvaluationResult(BaseModel):
     message: str = Field(..., json_schema_extra={"description": "A message for the salesman on how to improve"})
     best_response: str = Field(..., json_schema_extra={"description": "What could have been a better response"})
 
+
 class RolePlayingScenarioGenerator:
-    def __init__(self, openai_api_key: str):
-        self.openai_api_key = openai_api_key
+    def __init__(self, llm):
+        self.llm = llm
 
     def generate_scenario(self, theme: str) -> Scenario:
         parser = PydanticOutputParser(pydantic_object=Scenario)
@@ -430,12 +431,7 @@ class RolePlayingScenarioGenerator:
             input_variables=["theme"],
             partial_variables={"format_instructions": parser.get_format_instructions()},
         )
-        llm = ChatOpenAI(
-            temperature=0.2,
-            openai_api_key=self.openai_api_key,
-            model="gpt-3.5-turbo",
-        )
-        chain = LLMChain(llm=llm, prompt=gen_prompt, verbose=True, output_parser=parser, llm_kwargs={"response_format": {"type": "json_object"}})
+        chain = LLMChain(llm=self.llm, prompt=gen_prompt, verbose=True, output_parser=parser, llm_kwargs={"response_format": {"type": "json_object"}})
         return chain.run(theme=theme)
 
     def evaluate_scenario(
@@ -445,11 +441,6 @@ class RolePlayingScenarioGenerator:
         explanation: str,
         salesman_response: str,
     ) -> ScenarioEvaluationResult:
-        llm = ChatOpenAI(
-            temperature=0.2,
-            openai_api_key=self.openai_api_key,
-            model="gpt-3.5-turbo",
-        )
         parser = PydanticOutputParser(pydantic_object=ScenarioEvaluationResult)
         eval_prompt = PromptTemplate(
             template=prompt.SCENARIO_EVAL_PROMPT,
@@ -461,66 +452,10 @@ class RolePlayingScenarioGenerator:
             ],
             partial_variables={"format_instructions": parser.get_format_instructions()},
         )
-        chain = LLMChain(llm=llm, prompt=eval_prompt, verbose=True, output_parser=parser, llm_kwargs={"response_format": {"type": "json_object"}})
+        chain = LLMChain(llm=self.llm, prompt=eval_prompt, verbose=True, output_parser=parser, llm_kwargs={"response_format": {"type": "json_object"}})
         return chain.run(
             scenario=scenario,
             best_response=best_response,
             explanation=explanation,
             salesman_response=salesman_response,
         )
-
-
-
-if __name__ == "__main__":
-    from peewee import PostgresqlDatabase
-    from langchain_groq import ChatGroq
-    from dotenv import load_dotenv
-    import os
-    
-    load_dotenv("/home/zain/work/hubbard_ai/api/.env")
-    
-    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-    QDRANT_URL = os.getenv("QDRANT_URL")
-    QDRANT_API_KEY = os.getenv("QDRANT_API_KEY")
-    UNSTRUCTURED_API_KEY = os.getenv("UNSTRUCTURED_API_KEY", "")
-    JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "keeeeyeeeek")
-    JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
-    ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES"))
-    DATABASE_NAME = os.getenv("DATABASE_NAME")
-    DATABASE_USER = os.getenv("DATABASE_USER")
-    DATABASE_PASSWORD = os.getenv("DATABASE_PASSWORD")
-    DATABASE_HOST = os.getenv("DATABASE_HOST")
-    DATABASE_PORT = os.getenv("DATABASE_PORT")
-    UNSTRUCTURED_URL = os.getenv("UNSTRUCTURED_URL")
-
-    db = PostgresqlDatabase(
-        DATABASE_NAME,
-        user=DATABASE_USER,
-        password=DATABASE_PASSWORD,
-        host=DATABASE_HOST,
-        port=DATABASE_PORT,
-        autorollback=True, 
-        autoconnect=True
-    )
-    prompt_handler = PromptHandler(db)
-    manager = KnowledgeManager(
-        openai_api_key=OPENAI_API_KEY,
-        prompt_handler=prompt_handler,
-        response_handler=ResponseStorer(db),
-        qdrant_url=QDRANT_URL,
-        qdrant_api_key=QDRANT_API_KEY,
-        unstructured_api_url=UNSTRUCTURED_URL,
-        unstructured_api_key=UNSTRUCTURED_API_KEY,
-        collection_name="books_real_main",
-        llm=ChatGroq(temperature=0, model_name="llama3-70b-8192")
-    )
-    vs = manager.load_vectorstore(manager.collection_name)
-    qdrant = qdrant_client.QdrantClient(
-        url=QDRANT_URL,
-        prefer_grpc=True,
-        api_key=QDRANT_API_KEY,
-    )
-    print(qdrant.retrieve("books_real_main", ids=["b11f408d-de30-43d4-8fdd-6d31415e5266"]))
-    update_dict = {"weight" : 6}
-    manager.update_metadata(["b11f408d-de30-43d4-8fdd-6d31415e5266"], update_dict)
-    print(qdrant.retrieve("books_real_main", ids=["b11f408d-de30-43d4-8fdd-6d31415e5266"]))

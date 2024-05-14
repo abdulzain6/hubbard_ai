@@ -1,23 +1,6 @@
 from pydantic import BaseModel, EmailStr, Field, validator
 from typing import Optional
 
-
-class ScenarioCreateRequest(BaseModel):
-    name: str
-    description: str
-    scenario_description: str
-    best_response: str
-    response_explanation: str
-    difficulty: str  # New field
-    importance: int  # New field
-
-class ScenarioUpdateRequest(BaseModel):
-    description: Optional[str] = None
-    scenario_description: Optional[str] = None
-    best_response: Optional[str] = None
-    response_explanation: Optional[str] = None
-    difficulty: Optional[str] = None  # New field
-    importance: Optional[int] = None  # New field
     
 class PromptInput(BaseModel):
     prompt: str
@@ -82,14 +65,3 @@ class UserUpdate(BaseModel):
 class RoleInput(BaseModel):
     name: str
     prompt: str
-    
-class FeedbackRequest(BaseModel):
-    star: int
-    review: str
-    
-class GenerateScenarioRequest(BaseModel):
-    theme: str
-    
-class EvaluateScenarioRequest(BaseModel):
-    scenario_name: str
-    salesman_response: str
