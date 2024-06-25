@@ -1,9 +1,10 @@
 import os
+import random
 from typing import Dict, Tuple
 import requests
 import base64
 
-API_URL = 'http://146.190.14.15'
+API_URL = 'http://143.244.210.80:8501'
 
 def update_file_metadata(filename: str, update_dict: dict, access_token: str) -> int:
     """
@@ -77,17 +78,77 @@ def evaluate_scenario(scenario_name: str, scenario_description: str, scenario_te
     response = requests.post(url, json=data, headers=headers)
     return response.json(), response.status_code
 
-def generate_scenario(theme: str, access_token: str):
-    """Generate a scenario based on a theme."""
+def generate_scenario(scenario_name: str, access_token: str):
+    """Generate a scenario based on a scenario name."""
     url = f"{API_URL}/api/v1/scenarios/generate_scenario"
     headers = {
         'accept': 'application/json',
         'Authorization': f'Bearer {access_token}',
         'Content-Type': 'application/json'
     }
-    data = {'theme': theme}
+    data = {'scenario_name': scenario_name}
     response = requests.post(url, json=data, headers=headers)
     return response.json(), response.status_code
+
+def add_scenario(name: str, prompt: str, file_names: list[str], access_token: str):
+    """Add a new scenario."""
+    url = f"{API_URL}/api/v1/scenarios/add_scenario"
+    headers = {
+        'accept': 'application/json',
+        'Authorization': f'Bearer {access_token}',
+        'Content-Type': 'application/json'
+    }
+    data = {
+        'name': name,
+        'prompt': prompt,
+        'file_names': file_names
+    }
+    response = requests.post(url, json=data, headers=headers)
+    return response.json(), response.status_code
+
+def get_scenario(name: str, access_token: str):
+    """Get a scenario by name."""
+    url = f"{API_URL}/api/v1/scenarios/get_scenario/{name}"
+    headers = {
+        'accept': 'application/json',
+        'Authorization': f'Bearer {access_token}'
+    }
+    response = requests.get(url, headers=headers)
+    return response.json(), response.status_code
+
+def update_scenario(name: str, attributes: dict, access_token: str):
+    """Update an existing scenario."""
+    url = f"{API_URL}/api/v1/scenarios/update_scenario/{name}"
+    headers = {
+        'accept': 'application/json',
+        'Authorization': f'Bearer {access_token}',
+        'Content-Type': 'application/json'
+    }
+    response = requests.put(url, json=attributes, headers=headers)
+    return response.json(), response.status_code
+
+
+def get_all_scenarios(access_token: str):
+    """Get all scenarios."""
+    url = f"{API_URL}/api/v1/scenarios/get_all_scenarios"
+    headers = {
+        'accept': 'application/json',
+        'Authorization': f'Bearer {access_token}'
+    }
+    response = requests.get(url, headers=headers)
+    return response.json(), response.status_code
+
+def delete_scenario(name: str, access_token: str):
+    """Delete a scenario by name."""
+    url = f"{API_URL}/api/v1/scenarios/delete_scenario/{name}"
+    headers = {
+        'accept': 'application/json',
+        'Authorization': f'Bearer {access_token}'
+    }
+    response = requests.delete(url, headers=headers)
+    return response.json(), response.status_code
+
+
 
 
 
@@ -106,7 +167,7 @@ def set_rank(prompt: str, rank: int, from_rank: int, access_token: str):
     response = requests.post(url, json=data, headers=headers)
     return response.json(), response.status_code
 
-def generate_response(question: str, access_token: str):
+def generate_response(question: str, access_token: str, role: str):
     """Generate a response using the chat API."""
     url = f"{API_URL}/api/v1/chat"
     headers = {
@@ -116,7 +177,9 @@ def generate_response(question: str, access_token: str):
     data = {
         'question': question,
         'chat_history': [],
-        'get_highest_ranking_response': False
+        'get_highest_ranking_response': False,
+        'temperature': int(random.randrange(0,1)) /10,
+        "role" : role
     }
     response = requests.post(url, json=data, headers=headers)
     print(response.text)

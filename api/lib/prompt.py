@@ -79,6 +79,17 @@ Now generate a scenario like the above one so sales people can improve their ski
 You must follow {theme} theme for your scenario.
 Be creative you dont always have to make a scenario of the curtomer missing someone.
 Provide detailed scenarios.
+
+Use the following data to generate the scenario also:
+==================
+{data}
+==================
+
+Follow the following also:
+==================
+{prompt}
+==================
+
 Lets think step by step to generate a challanging scenario. Also output the solution and why it is correct (Important).
 
 {format_instructions}

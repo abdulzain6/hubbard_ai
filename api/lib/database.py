@@ -5,11 +5,22 @@ from datetime import datetime
 from peewee import *
 from playhouse.shortcuts import model_to_dict
 from passlib.context import CryptContext
-from langchain_core.prompts import PromptTemplate
 from peewee import Model, CharField, ForeignKeyField, IntegerField, SqliteDatabase
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional
 from playhouse.shortcuts import model_to_dict
 
+
+
+class JSONField(Field):
+    field_type = 'TEXT'
+
+    def db_value(self, value):
+        return json.dumps(value)
+
+    def python_value(self, value):
+        if value is not None:
+            return json.loads(value)
+        return value
 
 class FileManager:
     def __init__(self, db: SqliteDatabase):
@@ -26,7 +37,15 @@ class FileManager:
         self.db = db
         db.connect(reuse_if_open=True)
         db.create_tables([File], safe=True)
-
+        
+    def check_files_exist(self, file_names: list[str]) -> dict[str, bool]:
+        file_statuses = {}
+        with self.db.connection_context():
+            for file_name in file_names:
+                file_exists = self.model.select().where(self.model.file_name == file_name).exists()
+                file_statuses[file_name] = file_exists
+        return file_statuses
+    
     def create_file(
         self, file_name: str, description: str, content: str, vector_ids: list
     ):
@@ -477,17 +496,9 @@ class RoleManager:
 class SalesRoleplayScenarioManager:
     def __init__(self, db: SqliteDatabase):
         class Scenario(Model):
-            name = CharField(unique=True, primary_key=True)  # Scenario name
-            description = TextField()  # Scenario description
-            scenario_description = TextField()  # Scenario description
-            best_response = TextField()  # Best response
-            response_explanation = TextField()  # Response explanation
-            difficulty = TextField(
-                constraints=[Check("difficulty IN ('A', 'B', 'C')")]
-            )  # Difficulty level
-            importance = IntegerField(
-                constraints=[Check("importance IN (1, 2, 3)")]
-            )  # Importance level
+            name = CharField(unique=True, primary_key=True)  
+            prompt = TextField() 
+            file_names = JSONField()
 
             class Meta:
                 database = db
@@ -495,12 +506,8 @@ class SalesRoleplayScenarioManager:
             def dict(self) -> dict:
                 return {
                     "name": self.name,
-                    "description": self.description,
-                    "scenario_description": self.scenario_description,
-                    "best_response": self.best_response,
-                    "response_explanation": self.response_explanation,
-                    "difficulty": self.difficulty,
-                    "importance": self.importance,
+                    "prompt": self.prompt,
+                    "file_names": self.file_names,
                 }
 
         self.model = Scenario
@@ -511,26 +518,18 @@ class SalesRoleplayScenarioManager:
     def create_scenario(
         self,
         name: str,
-        description: str,
-        scenario_description: str,
-        best_response: str,
-        response_explanation: str,
-        difficulty: str,
-        importance: int,
+        prompt: str,
+        file_names: list[str],
     ) -> bool:
-        with self.db.connection_context():
-            scenario = self.model(
+        with self.db.atomic():
+            scenario = self.model.create(
                 name=name,
-                description=description,
-                scenario_description=scenario_description,
-                best_response=best_response,
-                response_explanation=response_explanation,
-                difficulty=difficulty,
-                importance=importance,
+                prompt=prompt,
+                file_names=file_names
             )
-            scenario.save(force_insert=True)
+            scenario.save(force_insert=False)
             return True
-
+        
     def get_scenario_by_name(self, name: str):
         with self.db.connection_context():
             try:
@@ -557,74 +556,10 @@ class SalesRoleplayScenarioManager:
     def get_cls(self):
         return self.model
 
-class FeedbackHandler:
-    def __init__(self, db: SqliteDatabase, user_model: Model):
-        class Feedback(Model):
-            user = ForeignKeyField(
-                user_model, backref="feedback", unique=True
-            )  # One-to-one relation to User
-            star = IntegerField()  # Assuming stars are from 1 to 5
-            review = TextField()
-
-            class Meta:
-                database = db
-
-        self.model = Feedback
-        self.db = db
-        db.connect(reuse_if_open=True)
-        db.create_tables([Feedback], safe=True)
-
-    def create_feedback(self, user: Union[str, Model], star: int, review: str) -> Model:
-        if star < 1 or star > 5:
-            raise ValueError("Star rating must be between 1 and 5")
-
-        with self.db.connection_context():
-            feedback = self.model(user=user, star=star, review=review)
-            feedback.save(force_insert=True)
-            return feedback
-
-    def update_feedback(
-        self,
-        user: Union[str, Model],
-        star: Optional[int] = None,
-        review: Optional[str] = None,
-    ) -> Optional[Model]:
-        if star and (star < 1 or star > 5):
-            raise ValueError("Star rating must be between 1 and 5")
-
-        with self.db.connection_context():
-            feedback = self.get_feedback_by_user(user)
-            if not feedback:
-                return None
-
-            if star:
-                feedback.star = star
-            if review:
-                feedback.review = review
-            feedback.save()
-            return feedback
-
-    def get_feedback_by_user(self, user: Union[str, Model]) -> Optional[Model]:
-        with self.db.connection_context():
-            try:
-                return self.model.get(self.model.user == user)
-            except self.model.DoesNotExist:
-                return None
-
-    def delete_feedback(self, user: Union[str, Model]) -> bool:
-        with self.db.connection_context():
-            if feedback := self.get_feedback_by_user(user):
-                feedback.delete_instance()
-                return True
-            return False
-
-    def get_all_feedbacks(self) -> List[Model]:
-        with self.db.connection_context():
-            return list(self.model.select())
 
 
 if __name__ == "__main__":
-    users = FileManager(SqliteDatabase("database/database.db"))
-    users.create_new_user(
-        "abdulzain6@gmail.com", "zainZain123", "admin", "Zain", "pakistan", "123"
+    scenario_manager = SalesRoleplayScenarioManager(SqliteDatabase("database.db"))
+    scenario_manager.create_scenario(
+        "None", "Prompt", file_names=["a", "a", "v"]
     )

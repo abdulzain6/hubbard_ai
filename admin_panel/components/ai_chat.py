@@ -13,12 +13,12 @@ def main() -> None:
         st.warning("You are not logged in.")
         return
     
-    roles = get_roles(access_token)
-    role_names = [role["name"] for role in roles]
         
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = []
 
+    roles = get_roles(access_token)
+    role_names = [role["name"] for role in roles]
     if roles:
         selected_role = st.selectbox("Select Role", options=role_names)
         user_input = st.chat_input("What would you like to discuss?")

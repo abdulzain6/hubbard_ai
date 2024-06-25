@@ -1,6 +1,6 @@
 import streamlit as st
 
-from utils import create_response, update_response, delete_response, list_responses, generate_response
+from utils import create_response, get_roles, update_response, delete_response, list_responses, generate_response
 
 def main() -> None:
     st.title("Response Management")
@@ -10,14 +10,21 @@ def main() -> None:
         st.warning("You are not logged in.")
         return
 
+    roles = get_roles(access_token)
+    role_names = [role["name"] for role in roles]
+    if roles:
+        selected_role = st.selectbox("Select Role", options=role_names)
+    else:
+        st.text("No roles found! Please add a role")
+        
     question = st.text_input("Enter your question for AI:")
     if st.button("Generate Response"):
-        result, status_code = generate_response(question, access_token)
-        if status_code == 200:
-            st.success(f"AI Response: {result['ai_response']}")
-        else:
-            st.error(f"Failed to generate response: {result.get('message', 'API Error')}")
-
+            if selected_role:
+                result, status_code = generate_response(question, access_token, role=selected_role)
+                if status_code == 200:
+                    st.success(f"AI Response: {result['ai_response']}")
+                else:
+                    st.error(f"Failed to generate response: {result.get('message', 'API Error')}")
     tab1, tab4 = st.tabs(["Create", "List"])
 
     with tab1:

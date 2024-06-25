@@ -8,7 +8,7 @@ PAGES = {
     "Files" : files.main,
     "AI Chat" : ai_chat.main,
     "Prompt Templates" : prompts.main,
-    "Role Prompt Management" : roles.main,
+    "Role Management" : roles.main,
     "User Management" : user_management.main,
     "Response Ranking" : response_ranking.main,
     "Scenarios": scenarios.main,

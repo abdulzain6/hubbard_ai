@@ -151,8 +151,8 @@ class KnowledgeManager:
         if not collection_name:
             collection_name = self.collection_name
 
+        start_vectorstore = time.time()
         try:
-            start_vectorstore = time.time()
             vectorstore = self.load_vectorstore(collection_name)
             documents = vectorstore.similarity_search(question, k=2, filter={"role" : role})
             if not documents:
@@ -160,7 +160,6 @@ class KnowledgeManager:
                 documents = vectorstore.similarity_search(question, k=2)
 
             documents = self._reduce_tokens_below_limit(documents, self.docs_limit)
-            print(f"Time taken for data loading: {time.time() - start_vectorstore}")
         except Exception:
             documents = []
         
@@ -178,6 +177,7 @@ class KnowledgeManager:
         except Exception as e:
             insights = ""
 
+        print(f"Time taken for data loading: {time.time() - start_vectorstore}")
 
         prompt = self.get_prompt()
         document_chain = create_stuff_documents_chain(self.llm, prompt)
@@ -280,7 +280,6 @@ class KnowledgeManager:
             raise ValueError("Record not found!")
         
         return records[0].payload.get("metadata", {})
-        
             
     def update_metadata(self, ids: List[int], update_dict: Dict[str, str], collection_name: Optional[str] = None):
         if not collection_name:
@@ -419,20 +418,19 @@ class ScenarioEvaluationResult(BaseModel):
     message: str = Field(..., json_schema_extra={"description": "A message for the salesman on how to improve"})
     best_response: str = Field(..., json_schema_extra={"description": "What could have been a better response"})
 
-
 class RolePlayingScenarioGenerator:
     def __init__(self, llm):
         self.llm = llm
 
-    def generate_scenario(self, theme: str) -> Scenario:
+    def generate_scenario(self, theme: str, data: str, prompt_in: str) -> Scenario:
         parser = PydanticOutputParser(pydantic_object=Scenario)
         gen_prompt = PromptTemplate(
             template=prompt.SCENARIO_GEN_PROMPT,
-            input_variables=["theme"],
+            input_variables=["theme", "data", "prompt"],
             partial_variables={"format_instructions": parser.get_format_instructions()},
         )
         chain = LLMChain(llm=self.llm, prompt=gen_prompt, verbose=True, output_parser=parser, llm_kwargs={"response_format": {"type": "json_object"}})
-        return chain.run(theme=theme)
+        return chain.run(theme=theme, data=data, prompt=prompt_in)
 
     def evaluate_scenario(
         self,
