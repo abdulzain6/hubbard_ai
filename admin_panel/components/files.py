@@ -38,6 +38,7 @@ def main():
                     st.session_state['message'] = f"Uploaded {uploaded_file.name}"
                     st.session_state['last_description'] = file_description
                     st.session_state['last_weight'] = weight
+                    st.session_state['refresh_files'] = True
                     st.rerun()
                 else:
                     st.error(f"Failed to upload {uploaded_file.name}")
