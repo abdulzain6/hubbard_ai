@@ -28,7 +28,7 @@ class InjestModel(BaseModel):
     description: Optional[str] = None
     extension: Optional[str] = None
     weight: int = 1
-    role: str
+    role: Optional[str] = None
   
   
   
@@ -39,10 +39,12 @@ def chat(
     background_tasks: BackgroundTasks,
     token: str = Depends(oauth2_scheme),
 ):
-    if not (role := role_manager.read_role(data.role)):
+    if not (role := role_manager.read_role(data.role)) and role:
         raise HTTPException(404, detail="Role not found")
     else:
         prefix = role.prompt_prefix
+        
+    print("Chosen role: ", data.role)
 
     @has_role(allowed_roles=["user", "admin"])
     def get_chat(token):

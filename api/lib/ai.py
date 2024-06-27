@@ -76,7 +76,10 @@ class KnowledgeManager:
             raise ValueError("No data provided")
 
         if text:
-            docs = [Document(page_content=text, metadata={"weight" : weight, "role" : role})]
+            if role:
+                docs = [Document(page_content=text, metadata={"weight" : weight, "role" : role})]
+            else:
+                docs = [Document(page_content=text, metadata={"weight" : weight})]
             docs = CharacterTextSplitter(
                 chunk_size=self.chunk_size
             ).split_documents(docs)
@@ -88,13 +91,22 @@ class KnowledgeManager:
                 url=self.unstructured_api_url
             )
             docs = loader.load()
-            docs = [
-                Document(
-                    page_content=doc.page_content,
-                    metadata={"weight" : weight, "role" : role}
-                )
-                for doc in docs
-            ]
+            if role:
+                docs = [
+                    Document(
+                        page_content=doc.page_content,
+                        metadata={"weight" : weight, "role" : role}
+                    )
+                    for doc in docs
+                ]
+            else:
+                docs = [
+                    Document(
+                        page_content=doc.page_content,
+                        metadata={"weight" : weight}
+                    )
+                    for doc in docs
+                ]
             splitter = CharacterTextSplitter(chunk_size=self.chunk_size)
             docs = splitter.split_documents(docs)
 
@@ -154,7 +166,8 @@ class KnowledgeManager:
         start_vectorstore = time.time()
         try:
             vectorstore = self.load_vectorstore(collection_name)
-            documents = vectorstore.similarity_search(question, k=2, filter={"role" : role})
+            print({"role" : [role, "all"]})
+            documents = vectorstore.similarity_search(question, k=2, filter={"role" : [role, "all"]})
             if not documents:
                 print(f"Documents not found for role {role}. Defaulting to all data")
                 documents = vectorstore.similarity_search(question, k=2)

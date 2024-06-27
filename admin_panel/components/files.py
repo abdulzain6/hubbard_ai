@@ -29,7 +29,7 @@ def main():
             uploaded_file = st.file_uploader("Choose a file")
             file_description = st.text_input("Description", value=st.session_state.get('last_description', ''))
             weight = st.number_input("Weight", value=st.session_state.get('last_weight', 0), step=1, format='%d')
-            selected_role = st.selectbox("Select Role", options=role_names)
+            selected_role = st.selectbox("Select Role", options=role_names + ["all"])
             submit_button = st.form_submit_button("Upload File")
             
             if submit_button and uploaded_file:
@@ -83,7 +83,7 @@ def main():
                             st.error(f"Failed to update weight for {file['file_name']}")
             with col4:
               #  role_names_update = role_names + ["No role"]
-                new_role = st.selectbox(f"Current role: {metadata.get(file['file_name']).get('role', 'None')}", options=role_names, key=f"role_{file['file_name']}")
+                new_role = st.selectbox(f"Current role: {metadata.get(file['file_name']).get('role', 'None')}", options=role_names + ["all"], key=f"role_{file['file_name']}")
                 if new_role != metadata.get(file['file_name']).get("role"):
                     if st.button("Update", key=f"update_role_{file['file_name']}"):
                #         if new_role == "No role":
