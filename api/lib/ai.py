@@ -183,7 +183,6 @@ class KnowledgeManager:
         get_highest_ranking_response: bool = False,
         llm: BaseModel = None
     ) -> str:
-        
         if not llm:
             llm = self.llm
                     
