@@ -181,8 +181,8 @@ class KnowledgeManager:
             must=[
                 qdrant_models.FieldCondition(
                     key="metadata.role",
-                    match=qdrant_models.MatchValue(
-                        value=roles
+                    match=qdrant_models.MatchAny(
+                        any=roles
                     )
                 )
             ]
@@ -218,9 +218,11 @@ class KnowledgeManager:
             if not documents:
                 print(f"Documents not found for role {role}. Defaulting to all data")
                 documents = vectorstore.similarity_search(question, k=2)
+            print(documents)
 
             documents = self._reduce_tokens_below_limit(documents, self.docs_limit)
-        except Exception:
+        except Exception as e:
+            print("error", e)
             documents = []
                 
         try:
