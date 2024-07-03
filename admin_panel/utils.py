@@ -1,6 +1,6 @@
 import os
 import random
-from typing import Dict, Tuple
+from typing import Dict, Generator, Tuple
 import requests
 import base64
 
@@ -325,7 +325,31 @@ def delete_role(name: str, access_token: str):
     response = requests.delete(url, headers=headers)
     return response.status_code == 200
 
+def get_chat_response_stream(question: str, chat_history: list, access_token: str, role: str) -> Generator[str, None, None]:
+    """Send a question to the AI chat API and receive a streaming response."""
+    url = f'{API_URL}/api/v1/chat-stream'
+    headers = {
+        'accept': 'application/json',
+        'Authorization': f'Bearer {access_token}',
+        'Content-Type': 'application/json'
+    }
+    data = {
+        'question': question,
+        'chat_history': chat_history,
+        'get_highest_ranking_response': True,
+        'role': role
+    }
 
+    response = requests.post(url, headers=headers, json=data, stream=True)
+    
+    if response.status_code == 200:
+        for line in response.iter_content(decode_unicode=True, chunk_size=10):
+            if line:
+                decoded_line = line.decode('utf-8') if isinstance(line, bytes) else line
+                print(type(decoded_line), type(line))
+                yield decoded_line
+    else:
+        yield f"Failed to get response from AI: {response.status_code}"
 
 
 def get_chat_response(question: str, chat_history: list, access_token: str, role: str) -> str:

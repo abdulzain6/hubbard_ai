@@ -1,7 +1,7 @@
 from typing import Dict, List, Optional, Tuple
 from qdrant_client.http.models import OverwritePayloadOperation, SetPayload
 
-from langchain.schema import Document, BaseMessage, AIMessage, HumanMessage
+from langchain.schema import Document, BaseMessage, AIMessage, HumanMessage, LLMResult
 from langchain_community.document_loaders import UnstructuredAPIFileLoader
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.prompts import MessagesPlaceholder, ChatPromptTemplate
@@ -14,6 +14,7 @@ from langchain_openai.chat_models import ChatOpenAI
 from langchain.output_parsers import PydanticOutputParser
 from langchain_core.prompts import PromptTemplate
 from langchain.chat_models.base import BaseChatModel
+from langchain.callbacks.base import BaseCallbackHandler
 
 from . import prompt
 from .database import PromptHandler, ResponseStorer
@@ -22,6 +23,32 @@ from pydantic import BaseModel, Field, field_validator
 import qdrant_client
 import time
 
+
+def split_into_chunks(text, chunk_size):
+    return [text[i : i + chunk_size] for i in range(0, len(text), chunk_size)]
+
+class CustomCallback(BaseCallbackHandler):
+    def __init__(self, callback, on_end_callback) -> None:
+        self.callback = callback
+        self.on_end_callback = on_end_callback
+        super().__init__()
+        self.cached = True
+
+    def on_llm_new_token(self, token: str, **kwargs) -> None:
+        if token:
+            self.cached = False
+        if not self.cached:
+            self.callback(token)
+
+    def on_llm_end(self, response: LLMResult, *args, **kwargs) -> None:
+        if self.cached:
+            for chunk in split_into_chunks(response.generations[0][0].text, 8):
+                self.callback(chunk)
+                time.sleep(0.05)
+        self.callback(None)
+        self.on_end_callback(response.generations[0][0].text)
+     
+        
 class KnowledgeManager:
     def __init__(
         self,
@@ -145,7 +172,75 @@ class KnowledgeManager:
             token_count -= tokens[num_docs]
 
         return docs[:num_docs]
+    
+    def chat_stream(
+        self,
+        question: str,
+        chat_history: list[tuple[str, str]],
+        role: str,
+        prefix: str,
+        collection_name: str = None,
+        get_highest_ranking_response: bool = False,
+        llm: BaseModel = None
+    ) -> str:
+        
+        if not llm:
+            llm = self.llm
+                    
+        if get_highest_ranking_response:
+            if resp := self.response_handler.get_highest_rank_response(question):
+                return resp.response
+        
+        if not collection_name:
+            collection_name = self.collection_name
 
+        start_vectorstore = time.time()
+        try:
+            vectorstore = self.load_vectorstore(collection_name)
+            documents = vectorstore.similarity_search(question, k=2, filter={"role" : [role, "all"]})
+            if not documents:
+                print(f"Documents not found for role {role}. Defaulting to all data")
+                documents = vectorstore.similarity_search(question, k=2)
+
+            documents = self._reduce_tokens_below_limit(documents, self.docs_limit)
+        except Exception:
+            documents = []
+                
+        try:
+            insights = self.docs_to_string(
+                self._reduce_tokens_below_limit(
+                    self.load_vectorstore(self.INSIGHTS_INDEX).similarity_search(
+                        question, k=2
+                    ),
+                    6000,
+                )
+            )
+        except Exception as e:
+            insights = ""
+
+        print(f"Time taken for data loading: {time.time() - start_vectorstore}")
+
+        prompt = self.get_prompt()
+        document_chain = create_stuff_documents_chain(llm, prompt)
+        messages = self.format_messages(chat_history, 1000)
+        
+        start_chain = time.time()
+        result = document_chain.invoke(
+            {
+                "context": documents,
+                "insights" : insights,
+                "prompt_prefix" : prefix,
+                "company_role" : role,
+                "messages": [
+                    *messages,
+                    HumanMessage(content=question)
+                ],
+            },
+            config={"verbose" : True}
+        )
+        print(f"Time taken for inference: {time.time() - start_chain}")
+        self.response_handler.create_new_response(question, result)
+    
     def chat(
         self,
         question: str,
@@ -175,9 +270,7 @@ class KnowledgeManager:
             documents = self._reduce_tokens_below_limit(documents, self.docs_limit)
         except Exception:
             documents = []
-        
-        print(documents)    
-        
+                
         try:
             insights = self.docs_to_string(
                 self._reduce_tokens_below_limit(

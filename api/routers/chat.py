@@ -1,12 +1,18 @@
 import base64
 import logging, tempfile
+import queue
 import os
+import threading
 
 from fastapi import APIRouter, Body, Depends, HTTPException, BackgroundTasks
+from fastapi.responses import StreamingResponse
+from langchain_openai import ChatOpenAI
 from api.auth import has_role, get_current_user
 from api.globals import manager, oauth2_scheme, role_manager, file_manager
 from pydantic import BaseModel
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Generator, List, Optional
+
+from api.lib.ai import CustomCallback, split_into_chunks
 
 
 router = APIRouter()
@@ -31,7 +37,65 @@ class InjestModel(BaseModel):
     role: Optional[str] = None
   
   
-  
+@router.post("/chat-stream")
+@has_role(allowed_roles=["user", "admin"])
+def chat(
+    data: ChatInput,
+    background_tasks: BackgroundTasks,
+    token: str = Depends(oauth2_scheme),
+):
+    if not (role := role_manager.read_role(data.role)) and role:
+        raise HTTPException(404, detail="Role not found")
+    else:
+        prefix = role.prompt_prefix
+        
+    print("Chosen role: ", data.role)
+    data_queue = queue.Queue(maxsize=-1)
+
+    def data_generator() -> Generator[str, None, None]:
+        # yield "[START]"
+        while True:
+            try:
+                data = data_queue.get(timeout=60)
+                if data is None:
+                    # yield "[END]"
+                    break
+                yield data
+            except queue.Empty:
+                yield "[TIMEOUT]"
+                break
+
+    def callback(data: str) -> None:
+        data_queue.put(data)
+
+    def on_end_callback(response: str) -> None:
+        ...
+            
+    def get_chat():
+        try:
+            ai_response = manager.chat_stream(
+                question=data.question,
+                chat_history=data.chat_history,
+                get_highest_ranking_response=data.get_highest_ranking_response,
+                prefix=prefix,
+                role=data.role,
+                llm=ChatOpenAI(model="gpt-4o", temperature=0.5, streaming=True, callbacks=[CustomCallback(callback=callback, on_end_callback=on_end_callback)])
+            )
+            if ai_response:
+                callback(ai_response)
+            callback(None)
+        except Exception as e:
+            logging.error(f"Error running chat in chat_file_stream: {e}")
+            error_message = "Error in getting response"
+            for chunk in split_into_chunks(error_message, 4):
+                callback(chunk)
+            callback(None)
+
+    threading.Thread(target=get_chat).start()
+
+    return StreamingResponse(data_generator())
+
+
     
 @router.post("/chat", response_model=ChatResponse)
 def chat(

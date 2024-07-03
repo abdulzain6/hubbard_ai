@@ -19,31 +19,33 @@ def main():
         st.session_state['role_names'] = [role["name"] for role in roles]
         
     roles = get_roles(access_token)
-    role_names = [role["name"] for role in roles]
-    
+    role_names = [role["name"] for role in roles if role["name"]]    
 
     # File upload section with a heading
     if st.session_state['roles']:
-        st.header('Upload New File')
-        with st.form("file_upload"):
-            uploaded_file = st.file_uploader("Choose a file")
-            file_description = st.text_input("Description", value=st.session_state.get('last_description', ''))
-            weight = st.number_input("Weight", value=st.session_state.get('last_weight', 0), step=1, format='%d')
-            selected_role = st.selectbox("Select Role", options=role_names + ["all"])
-            submit_button = st.form_submit_button("Upload File")
+        st.header('Upload New Files')
+        uploaded_files = st.file_uploader("Choose files", accept_multiple_files=True)
+        
+        if uploaded_files:
+            file_details = []
+            for uploaded_file in uploaded_files:
+                with st.expander(f"Details for {uploaded_file.name}"):
+                    file_description = st.text_input(f"Description for {uploaded_file.name}", key=f"description_{uploaded_file.name}")
+                    weight = st.number_input(f"Weight for {uploaded_file.name}", value=0, step=1, format='%d', key=f"weight_{uploaded_file.name}")
+                    selected_role = st.selectbox(f"Select Role for {uploaded_file.name}", options=role_names + ["all"], key=f"role_{uploaded_file.name}")
+                    file_details.append((uploaded_file, file_description, weight, selected_role))
             
-            if submit_button and uploaded_file:
-                file_data = uploaded_file.getvalue()
-                if upload_file(uploaded_file.name, file_data, file_description, weight, selected_role, access_token):
-                    st.session_state['message'] = f"Uploaded {uploaded_file.name}"
-                    st.session_state['last_description'] = file_description
-                    st.session_state['last_weight'] = weight
-                    st.session_state['refresh_files'] = True
-                    st.rerun()
-                else:
-                    st.error(f"Failed to upload {uploaded_file.name}")
+            if st.button("Upload Files"):
+                for uploaded_file, file_description, weight, selected_role in file_details:
+                    file_data = uploaded_file.getvalue()
+                    if upload_file(uploaded_file.name, file_data, file_description, weight, selected_role, access_token):
+                        st.session_state['message'] += f"Uploaded {uploaded_file.name}\n"
+                st.session_state['refresh_files'] = True
+                st.success(f"Uploaded {len(uploaded_files)} files successfully.")
+                st.rerun()
     else:
-        st.error("No roles available to display. Please create one")    
+        st.error("No roles available to display. Please create one")
+ 
 
 
 
@@ -55,6 +57,7 @@ def main():
         st.session_state['files'] = get_files(access_token)
         st.session_state['metadata'], _ = fetch_files_metadata(access_token)
         st.session_state['refresh_files'] = False
+        st.rerun()
         
     if st.session_state['files']:
         files = st.session_state['files']
@@ -71,7 +74,7 @@ def main():
             with col2:
                 st.text(file['file_name'])
             with col3:
-                new_weight = st.number_input("Weight", value=metadata.get(file['file_name']).get("weight"), key=f"weight_{file['file_name']}")
+                new_weight = st.number_input("Weight", value=metadata.get(file['file_name']).get("weight"), key=f"weight_{file['file_name']}_update")
                 if new_weight != metadata.get(file['file_name']).get("weight"):
                     if st.button("Update", key=f"update_{file['file_name']}"):
                         status = update_file_metadata(file['file_name'], {"weight" : new_weight}, access_token)
@@ -83,7 +86,7 @@ def main():
                             st.error(f"Failed to update weight for {file['file_name']}")
             with col4:
               #  role_names_update = role_names + ["No role"]
-                new_role = st.selectbox(f"Current role: {metadata.get(file['file_name']).get('role', 'None')}", options=role_names + ["all"], key=f"role_{file['file_name']}")
+                new_role = st.selectbox(f"Current role: {metadata.get(file['file_name']).get('role', 'None')}", options=role_names + ["all"], key=f"role_{file['file_name']}_new")
                 if new_role != metadata.get(file['file_name']).get("role"):
                     if st.button("Update", key=f"update_role_{file['file_name']}"):
                #         if new_role == "No role":

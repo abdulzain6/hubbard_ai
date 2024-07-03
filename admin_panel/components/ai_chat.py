@@ -1,5 +1,5 @@
 import streamlit as st
-from utils import get_chat_response, get_roles
+from utils import get_chat_response_stream, get_roles
 
 
 def main() -> None:
@@ -18,12 +18,17 @@ def main() -> None:
         st.session_state.chat_history = []
 
     roles = get_roles(access_token)
-    role_names = [role["name"] for role in roles]
+    role_names = [role["name"] for role in roles if role["name"]]
     if roles:
         selected_role = st.selectbox("Select Role", options=role_names)
         user_input = st.chat_input("What would you like to discuss?")
         if user_input:
-            response = get_chat_response(user_input, st.session_state.chat_history, access_token, selected_role)
+            with st.chat_message("assistant"):
+                response = st.write_stream(
+                    get_chat_response_stream(user_input, st.session_state.chat_history, access_token, selected_role)
+                )
+                print(response)
+                            
             st.session_state.chat_history.append((user_input, response))
             st.rerun()
 
