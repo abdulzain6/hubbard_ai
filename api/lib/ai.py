@@ -19,6 +19,7 @@ from langchain.callbacks.base import BaseCallbackHandler
 from . import prompt
 from .database import PromptHandler, ResponseStorer
 from pydantic import BaseModel, Field, field_validator
+from qdrant_client.http import models as qdrant_models
 
 import qdrant_client
 import time
@@ -173,6 +174,20 @@ class KnowledgeManager:
 
         return docs[:num_docs]
     
+    @staticmethod
+    def create_role_filter(roles: List[str]) -> qdrant_models.Filter:
+        """Create a Qdrant filter for documents with roles in the provided list using qdrant models."""
+        return qdrant_models.Filter(
+            must=[
+                qdrant_models.FieldCondition(
+                    key="metadata.role",
+                    match=qdrant_models.MatchValue(
+                        value=roles
+                    )
+                )
+            ]
+        )
+    
     def chat_stream(
         self,
         question: str,
@@ -196,7 +211,10 @@ class KnowledgeManager:
         start_vectorstore = time.time()
         try:
             vectorstore = self.load_vectorstore(collection_name)
-            documents = vectorstore.similarity_search(question, k=2, filter={"role" : [role, "all"]})
+            print({"role" : [role, "all"]})
+            filter = self.create_role_filter([role, "all"])
+            print(filter)
+            documents = vectorstore.similarity_search(question, k=2, filter=filter)
             if not documents:
                 print(f"Documents not found for role {role}. Defaulting to all data")
                 documents = vectorstore.similarity_search(question, k=2)
@@ -261,7 +279,7 @@ class KnowledgeManager:
         try:
             vectorstore = self.load_vectorstore(collection_name)
             print({"role" : [role, "all"]})
-            documents = vectorstore.similarity_search(question, k=2, filter={"role" : [role, "all"]})
+            documents = vectorstore.similarity_search(question, k=2, filter=self.create_role_filter([role, "all"]))
             if not documents:
                 print(f"Documents not found for role {role}. Defaulting to all data")
                 documents = vectorstore.similarity_search(question, k=2)
