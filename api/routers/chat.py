@@ -37,6 +37,7 @@ class InjestModel(BaseModel):
     role: Optional[str] = None
   
   
+  
 @router.post("/chat-stream")
 @has_role(allowed_roles=["user", "admin"])
 def chat(
