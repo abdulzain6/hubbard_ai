@@ -63,6 +63,7 @@ def main():
         files = st.session_state['files']
         metadata = st.session_state['metadata']
         if sort_order == 'A to Z':
+            print(files)
             files.sort(key=lambda x: x['file_name'])
         else:
             files.sort(key=lambda x: metadata.get(x['file_name']).get("weight"), reverse=True)

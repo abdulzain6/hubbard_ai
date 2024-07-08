@@ -12,7 +12,7 @@ def fetch_scenarios(access_token: str):
 def fetch_files(access_token: str):
     """Fetch all files and store them in session state."""
     response = get_files(access_token)
-    st.session_state.files = [file['file_name'] for file in response]
+    st.session_state.files_scenarios = [file['file_name'] for file in response]
    
         
 def main():
@@ -36,7 +36,7 @@ def main():
         with st.form(key='add_scenario_form'):
             name = st.text_input("Scenario Name")
             prompt = st.text_area("Scenario Prompt")
-            if "files" not in st.session_state:
+            if "files_scenarios" not in st.session_state:
                 fetch_files(access_token)
             file_names = st.multiselect("File Names", options=st.session_state.files)
             add_button = st.form_submit_button("Add Scenario")
@@ -57,7 +57,7 @@ def main():
                     st.write(f"**Files:** {', '.join(scenario['file_names'])}")
 
                     update_prompt = st.text_area("New Scenario Prompt", value=scenario['prompt'], key=f"prompt_{scenario['name']}")
-                    valid_default_files = [file for file in scenario['file_names'] if file in st.session_state.files]
+                    valid_default_files = [file for file in scenario['file_names'] if file in st.session_state.files_scenarios]
                     update_file_names = st.multiselect("New File Names", options=st.session_state.files, default=valid_default_files, key=f"files_{scenario['name']}")
                     col1, col2 = st.columns(2)
                     with col1:
