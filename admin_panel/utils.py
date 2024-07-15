@@ -87,9 +87,29 @@ def generate_scenario(scenario_name: str, access_token: str):
         'Content-Type': 'application/json'
     }
     data = {'scenario_name': scenario_name}
+    response = requests.post(url, json=data, headers=headers, stream=True)
+    if response.status_code == 200:
+        for line in response.iter_content(decode_unicode=True, chunk_size=10):
+            if line:
+                decoded_line = line.decode('utf-8', errors="ignore") if isinstance(line, bytes) else line
+                print(type(decoded_line), type(line))
+                yield decoded_line
+    else:
+        yield f"Failed to get response from AI: {response.status_code}"
+        
+def generate_scenario_metadata(scenario: str, access_token: str):
+    """Generate a scenario based on a scenario name."""
+    url = f"{API_URL}/api/v1/scenarios/generate_scenario_metadata"
+    headers = {
+        'accept': 'application/json',
+        'Authorization': f'Bearer {access_token}',
+        'Content-Type': 'application/json'
+    }
+    data = {'scenario': scenario}
     response = requests.post(url, json=data, headers=headers)
-    return response.json(), response.status_code
-
+    return response
+    
+        
 def add_scenario(name: str, prompt: str, file_names: list[str], access_token: str):
     """Add a new scenario."""
     url = f"{API_URL}/api/v1/scenarios/add_scenario"

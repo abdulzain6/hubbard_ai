@@ -1,5 +1,5 @@
 import streamlit as st
-from utils import generate_scenario, evaluate_scenario, add_scenario, delete_scenario, get_all_scenarios, update_scenario, get_files
+from utils import generate_scenario, evaluate_scenario, add_scenario, delete_scenario, get_all_scenarios, update_scenario, get_files, generate_scenario_metadata
 
 def fetch_scenarios(access_token: str):
     """Fetch all scenarios and store them in session state."""
@@ -38,7 +38,8 @@ def main():
             prompt = st.text_area("Scenario Prompt")
             if "files_scenarios" not in st.session_state:
                 fetch_files(access_token)
-            file_names = st.multiselect("File Names", options=st.session_state.files)
+                
+            file_names = st.multiselect("File Names", options=st.session_state.files_scenarios)
             add_button = st.form_submit_button("Add Scenario")
             if add_button:
                 response, status = add_scenario(name, prompt, file_names, access_token)
@@ -58,7 +59,7 @@ def main():
 
                     update_prompt = st.text_area("New Scenario Prompt", value=scenario['prompt'], key=f"prompt_{scenario['name']}")
                     valid_default_files = [file for file in scenario['file_names'] if file in st.session_state.files_scenarios]
-                    update_file_names = st.multiselect("New File Names", options=st.session_state.files, default=valid_default_files, key=f"files_{scenario['name']}")
+                    update_file_names = st.multiselect("New File Names", options=st.session_state.files_scenarios, default=valid_default_files, key=f"files_{scenario['name']}")
                     col1, col2 = st.columns(2)
                     with col1:
                         if st.button("Delete", key=f"delete_{scenario['name']}"):
@@ -89,19 +90,20 @@ def main():
         scenario_name = st.selectbox("Select Scenario for Generation", scenario_options)
 
         if st.button("Generate Scenario"):
-            response, status = generate_scenario(scenario_name, access_token)
-            if status == 200:
-                st.session_state.generated_scenario = response
+            st.subheader("Scenario:")
+            scenario_response = st.write_stream(
+                generate_scenario(scenario_name, access_token)
+            )
+            scenario_metadata_response = generate_scenario_metadata(scenario_response, access_token)
+            if scenario_metadata_response.status_code != 200:
+                st.error("Error generating scenario")
             else:
-                st.write(f"Error generating scenario: {response}")
+                st.session_state.scenario_response = scenario_response
+                st.session_state.scenario_metadata_response = scenario_metadata_response.json()
 
-        if 'generated_scenario' in st.session_state:
-            st.subheader("Evaluate Scenario")
-            generated_scenario = st.session_state.generated_scenario
-
-            st.markdown(f"### Scenario: {generated_scenario['name']}")
+        if 'scenario_metadata_response' in st.session_state:
+            generated_scenario = st.session_state.scenario_metadata_response
             st.markdown(f"**Description:** {generated_scenario['description']}")
-            st.markdown(f"**Scenario:**\n{generated_scenario['scenario']}")
             st.markdown(f"**Difficulty:** {generated_scenario['difficulty']}")
             st.markdown(f"**Importance:** {generated_scenario['importance']}")
 
@@ -111,7 +113,7 @@ def main():
                 eval_response, eval_status = evaluate_scenario(
                     generated_scenario.get("name"),
                     generated_scenario.get("description"),
-                    generated_scenario.get("scenario"),
+                    st.session_state.scenario_response,
                     generated_scenario.get("best_response"),
                     generated_scenario.get("explanation"),
                     generated_scenario.get("difficulty"),

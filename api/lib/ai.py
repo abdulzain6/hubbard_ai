@@ -515,12 +515,6 @@ class KnowledgeManager:
 class Scenario(BaseModel):
     name: str = Field(..., json_schema_extra={"description": "A name for the scenario", "example": "Scenario 1"})
     description: str = Field(..., json_schema_extra={"description": "Short description for the scenario"})
-    scenario: str = Field(
-        ...,
-        json_schema_extra={
-            "description": "The scenario, You may include what the customer says (Last parts of the conversation or what they last said) but make it clear. Be detailed",
-        },
-    )
     best_response: str = Field(..., json_schema_extra={"description": "The solution for the scenario"})
     explanation: str = Field(..., json_schema_extra={"description": "Why the solution was correct"})
     difficulty: str = Field(..., json_schema_extra={"description": "The difficulty of the question from A to C, C being the most difficult"})
@@ -547,15 +541,26 @@ class RolePlayingScenarioGenerator:
     def __init__(self, llm):
         self.llm = llm
 
-    def generate_scenario(self, theme: str, data: str, prompt_in: str) -> Scenario:
-        parser = PydanticOutputParser(pydantic_object=Scenario)
+    def generate_scenario(self, theme: str, data: str, prompt_in: str, llm: BaseModel = None) -> Scenario:
+        if not llm:
+            llm = self.llm
+            
         gen_prompt = PromptTemplate(
             template=prompt.SCENARIO_GEN_PROMPT,
             input_variables=["theme", "data", "prompt"],
+        )
+        chain = LLMChain(llm=llm, prompt=gen_prompt, verbose=True)
+        return chain.run(theme=theme, data=data, prompt=prompt_in)
+
+    def generate_scenario_metadata(self, scenario: str) -> Scenario:
+        parser = PydanticOutputParser(pydantic_object=Scenario)
+        gen_prompt = PromptTemplate(
+            template=prompt.SCENARIO_METADATA_GEN_PROMPT,
+            input_variables=["scenario"],
             partial_variables={"format_instructions": parser.get_format_instructions()},
         )
         chain = LLMChain(llm=self.llm, prompt=gen_prompt, verbose=True, output_parser=parser, llm_kwargs={"response_format": {"type": "json_object"}})
-        return chain.run(theme=theme, data=data, prompt=prompt_in)
+        return chain.run(scenario=scenario)
 
     def evaluate_scenario(
         self,

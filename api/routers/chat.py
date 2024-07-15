@@ -7,8 +7,8 @@ import threading
 from fastapi import APIRouter, Body, Depends, HTTPException, BackgroundTasks
 from fastapi.responses import StreamingResponse
 from langchain_openai import ChatOpenAI
-from api.auth import has_role, get_current_user
-from api.globals import manager, oauth2_scheme, role_manager, file_manager
+from api.auth import has_role
+from api.globals import manager, oauth2_scheme, role_manager, file_manager, GLOBAL_MODEL
 from pydantic import BaseModel
 from typing import Any, Dict, Generator, List, Optional
 
@@ -80,7 +80,7 @@ def chat(
                 get_highest_ranking_response=data.get_highest_ranking_response,
                 prefix=prefix,
                 role=data.role,
-                llm=ChatOpenAI(model="gpt-4o", temperature=0.5, streaming=True, callbacks=[CustomCallback(callback=callback, on_end_callback=on_end_callback)])
+                llm=ChatOpenAI(model=GLOBAL_MODEL, temperature=0.5, streaming=True, callbacks=[CustomCallback(callback=callback, on_end_callback=on_end_callback)])
             )
             if ai_response:
                 callback(ai_response)

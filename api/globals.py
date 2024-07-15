@@ -11,7 +11,6 @@ from .lib.ai import KnowledgeManager, RolePlayingScenarioGenerator
 from peewee import PostgresqlDatabase
 from fastapi.security import OAuth2PasswordBearer
 from passlib.context import CryptContext
-from langchain_groq import ChatGroq
 from langchain_openai import ChatOpenAI
 from .settings import *
 
@@ -40,7 +39,7 @@ manager = KnowledgeManager(
     unstructured_api_url=UNSTRUCTURED_URL,
     unstructured_api_key=UNSTRUCTURED_API_KEY,
     collection_name="books_real_main",
-    llm=ChatOpenAI(model="gpt-4o", temperature=0.5)
+    llm=ChatOpenAI(model=GLOBAL_MODEL, temperature=0.5)
 )
 
 with contextlib.suppress(Exception):

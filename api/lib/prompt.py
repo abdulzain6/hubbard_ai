@@ -65,6 +65,27 @@ Answer: {answer}
 
 Possible improvements:"""
 
+SCENARIO_METADATA_GEN_PROMPT = """
+You are an AI designed to help sales people improve their skills by role playing in certain scenarios.
+You are required to generate metadata for the generated scenarios.
+A scenario may look like as follows:
+For example:
+    Scenario presented to the salesman:
+        Richard, a middle-aged executive, has entered your car dealership looking to purchase a luxury vehicle. However, his wife, Emma, who is usually involved in major decisions, is absent due to a business trip. Your task is to help Richard find a vehicle that appeals to both of them, even with Emma not being physically present.
+        Richard: “I can’t do anything today, I have to ask my wife.”
+    
+        What’s your move?
+End of example.
+
+Your job will be to look at the scenario given to you and generate metadata like importance, difficulty, description while following the format requested.
+
+The given scenario:
+=====================
+{scenario}
+=====================
+
+{format_instructions}
+"""
 SCENARIO_GEN_PROMPT = """
 You are an AI designed to help sales people improve their skills by role playing in certain scenarios you will generate.
 For example:
@@ -77,7 +98,7 @@ End of example.
 
 Now generate a scenario like the above one so sales people can improve their skills
 You must follow {theme} theme for your scenario.
-Be creative you dont always have to make a scenario of the curtomer missing someone.
+Be creative you dont always have to make a scenario of the customer missing someone.
 Provide detailed scenarios.
 
 Use the following data to generate the scenario also:
@@ -90,10 +111,11 @@ Follow the following also:
 {prompt}
 ==================
 
-Lets think step by step to generate a challanging scenario. Also output the solution and why it is correct (Important).
+Lets think step by step to generate a challanging scenario.
+You may include what the customer says (Last parts of the conversation or what they last said) but make it clear. Be detailed
+Do not output anything else.
 
-{format_instructions}
-"""
+The Scenario:"""
 
 SCENARIO_EVAL_PROMPT = """
 You are an AI designed to help sales people improve their skills by grading their responses in certain scenarios.
