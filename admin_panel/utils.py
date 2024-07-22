@@ -218,6 +218,7 @@ def create_response(prompt: str, response: str, access_token: str):
         'response': response
     }
     response = requests.post(url, json=data, headers=headers)
+    print(response.text)
     return response.json(), response.status_code
 
 def update_response(prompt: str, rank: int, new_response: str, rank_new: int, access_token: str):
@@ -372,7 +373,7 @@ def get_chat_response_stream(question: str, chat_history: list, access_token: st
         yield f"Failed to get response from AI: {response.status_code}"
 
 
-def get_chat_response(question: str, chat_history: list, access_token: str, role: str) -> str:
+def get_chat_response(question: str, chat_history: list, access_token: str, role: str, get_highest_ranking_response: bool = True) -> str:
     """Send a question to the AI chat API and receive a response."""
     url = f'{API_URL}/api/v1/chat'
     headers = {
@@ -383,7 +384,7 @@ def get_chat_response(question: str, chat_history: list, access_token: str, role
     data = {
         'question': question,
         'chat_history': chat_history,
-        'get_highest_ranking_response': True,
+        'get_highest_ranking_response': get_highest_ranking_response,
         'temperature': 0,
         "role" : role
     }

@@ -39,7 +39,7 @@ manager = KnowledgeManager(
     unstructured_api_url=UNSTRUCTURED_URL,
     unstructured_api_key=UNSTRUCTURED_API_KEY,
     collection_name="books_real_main",
-    llm=ChatOpenAI(model=GLOBAL_MODEL, temperature=0.5)
+    llm=ChatOpenAI(model=GLOBAL_MODEL, temperature=1)
 )
 
 with contextlib.suppress(Exception):
