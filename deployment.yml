@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hubbard
+  labels:
+    app: hubbard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hubbard
+  template:
+    metadata:
+      labels:
+        app: hubbard
+    spec:
+      containers:
+        - name: hubbard-ai
+          image: registry.digitalocean.com/container-hubbard/hubbard_ai:latest
+          ports:
+            - containerPort: 8000
+              protocol: TCP
+          env:
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: hubbard-secrets
+                  key: OPENAI_API_KEY
+            - name: QDRANT_URL
+              value: http://qdrant.default.svc.cluster.local
+            - name: QDRANT_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: hubbard-secrets
+                  key: QDRANT_API_KEY
+            - name: UNSTRUCTURED_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: hubbard-secrets
+                  key: UNSTRUCTURED_API_KEY
+            - name: ACCESS_TOKEN_EXPIRE_MINUTES
+              value: '30'
+            - name: DATABASE_NAME
+              value: hubbard_db
+            - name: DATABASE_USER
+              value: postgres
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: hubbard-secrets
+                  key: DATABASE_PASSWORD
+            - name: DATABASE_HOST
+              value: my-release-postgresql.default.svc.cluster.local
+            - name: DATABASE_PORT
+              value: '5432'
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          imagePullPolicy: Always
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+      dnsPolicy: ClusterFirst
+      securityContext: {}
+      imagePullSecrets:
+        - name: my-docker-credentials
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 25%
+      maxSurge: 25%
+  revisionHistoryLimit: 10
+  progressDeadlineSeconds: 600
