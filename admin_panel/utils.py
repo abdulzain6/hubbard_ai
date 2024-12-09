@@ -4,7 +4,7 @@ from typing import Dict, Generator, Tuple
 import requests
 import base64
 
-API_URL = 'http://146.190.14.15'
+API_URL = 'http://localhost:8000'
 
 def update_file_metadata(filename: str, update_dict: dict, access_token: str) -> int:
     """
@@ -18,7 +18,7 @@ def update_file_metadata(filename: str, update_dict: dict, access_token: str) ->
     Returns:
     - int: The HTTP status code of the response.
     """
-    url = f"{API_URL}/api/v1/files/{filename}"
+    url = f"{API_URL}/api/v1/files/{filename}/metadata"
     headers = {
         'accept': 'application/json',
         'Authorization': f'Bearer {access_token}',
@@ -40,7 +40,7 @@ def fetch_files_metadata(access_token: str) -> Tuple[Dict[str, int], int]:
     Returns:
     - Tuple[Dict[str, int], int]: A tuple containing the dictionary of filenames and weights, and the HTTP status code.
     """
-    url = f"{API_URL}/api/v1/files-metadata/"
+    url = f"{API_URL}/api/v1/files/metadata"
     headers = {
         'accept': 'application/json',
         'Authorization': f'Bearer {access_token}'
@@ -108,8 +108,7 @@ def generate_scenario_metadata(scenario: str, access_token: str):
     data = {'scenario': scenario}
     response = requests.post(url, json=data, headers=headers)
     return response
-    
-        
+           
 def add_scenario(name: str, prompt: str, file_names: list[str], access_token: str):
     """Add a new scenario."""
     url = f"{API_URL}/api/v1/scenarios/add_scenario"
@@ -147,7 +146,6 @@ def update_scenario(name: str, attributes: dict, access_token: str):
     response = requests.put(url, json=attributes, headers=headers)
     return response.json(), response.status_code
 
-
 def get_all_scenarios(access_token: str):
     """Get all scenarios."""
     url = f"{API_URL}/api/v1/scenarios/get_all_scenarios"
@@ -168,28 +166,9 @@ def delete_scenario(name: str, access_token: str):
     response = requests.delete(url, headers=headers)
     return response.json(), response.status_code
 
-
-
-
-
-def set_rank(prompt: str, rank: int, from_rank: int, access_token: str):
-    """Change the rank of a response."""
-    url = f"{API_URL}/api/v1/responses/set_rank"
-    headers = {
-        'Content-Type': 'application/json',
-        'Authorization': f'Bearer {access_token}'
-    }
-    data = {
-        'prompt': prompt,
-        'rank': rank,
-        'from_rank': from_rank
-    }
-    response = requests.post(url, json=data, headers=headers)
-    return response.json(), response.status_code
-
 def generate_response(question: str, access_token: str, role: str):
     """Generate a response using the chat API."""
-    url = f"{API_URL}/api/v1/chat"
+    url = f"{API_URL}/api/v1/chat-stream"
     headers = {
         'Content-Type': 'application/json',
         'Authorization': f'Bearer {access_token}'
@@ -203,103 +182,6 @@ def generate_response(question: str, access_token: str, role: str):
     }
     response = requests.post(url, json=data, headers=headers)
     print(response.text)
-    return response.json(), response.status_code
-
-
-def create_response(prompt: str, response: str, access_token: str):
-    """Create a new response."""
-    url = f"{API_URL}/api/v1/responses/create_response"
-    headers = {
-        'Content-Type': 'application/json',
-        'Authorization': f'Bearer {access_token}'
-    }
-    data = {
-        'prompt': prompt,
-        'response': response
-    }
-    response = requests.post(url, json=data, headers=headers)
-    print(response.text)
-    return response.json(), response.status_code
-
-def update_response(prompt: str, rank: int, new_response: str, rank_new: int, access_token: str):
-    """Update an existing response."""
-    url = f"{API_URL}/api/v1/responses/update_response"
-    headers = {
-        'Content-Type': 'application/json',
-        'Authorization': f'Bearer {access_token}'
-    }
-    data = {
-        'prompt': prompt,
-        'rank': rank,
-        'attributes': {'response': new_response, "rank" : rank_new}
-    }
-    response = requests.put(url, json=data, headers=headers)
-    return response.json(), response.status_code
-
-def delete_response(prompt: str, rank: int, access_token: str):
-    """Delete a response."""
-    url = f"{API_URL}/api/v1/responses/delete_response/{prompt}/{rank}"
-    headers = {
-        'Authorization': f'Bearer {access_token}'
-    }
-    response = requests.delete(url, headers=headers)
-    print(response.text)
-    try:
-        res = response.json()
-    except:
-        res = response.text
-    return res, response.status_code
-
-def list_responses(access_token: str, prompt: str):
-    """List all responses."""
-    url = f"{API_URL}/api/v1/responses/responses/{prompt}"
-    headers = {
-        'Authorization': f'Bearer {access_token}'
-    }
-    response = requests.get(url, headers=headers)
-    print(response.json())
-    return response.json(), response.status_code
-
-def register_admin(email: str, password: str, name: str, country: str, phone: str, company_role: str, company: str, department: str, access_token: str):
-    """Register a new admin."""
-    url = f'{API_URL}/api/v1/users/register_admin'
-    headers = {
-        'accept': 'application/json',
-        'Authorization': f'Bearer {access_token}',
-        'Content-Type': 'application/json'
-    }
-    data = {
-        'email': email,
-        'password': password,
-        'name': name,
-        'country': country,
-        'phone': phone,
-        'company_role': company_role,
-        'company': company,
-        'department': department
-    }
-    response = requests.post(url, headers=headers, json=data)
-    return response.json(), response.status_code
-
-def delete_user(email: str, access_token: str):
-    """Delete a user."""
-    url = f'{API_URL}/api/v1/users/delete_user/{email}'
-    headers = {
-        'accept': 'application/json',
-        'Authorization': f'Bearer {access_token}'
-    }
-    response = requests.delete(url, headers=headers)
-    return response.json(), response.status_code
-
-def update_user(email: str, updates: dict, access_token: str):
-    """Update user details."""
-    url = f'{API_URL}/api/v1/users/update_user/{email}'
-    headers = {
-        'accept': 'application/json',
-        'Authorization': f'Bearer {access_token}',
-        'Content-Type': 'application/json'
-    }
-    response = requests.post(url, headers=headers, json=updates)
     return response.json(), response.status_code
 
 def get_roles(access_token: str):
@@ -348,7 +230,7 @@ def delete_role(name: str, access_token: str):
 
 def get_chat_response_stream(question: str, chat_history: list, access_token: str, role: str) -> Generator[str, None, None]:
     """Send a question to the AI chat API and receive a streaming response."""
-    url = f'{API_URL}/api/v1/chat-stream'
+    url = f'{API_URL}/api/v1/chat/chat-stream'
     headers = {
         'accept': 'application/json',
         'Authorization': f'Bearer {access_token}',
@@ -371,32 +253,6 @@ def get_chat_response_stream(question: str, chat_history: list, access_token: st
                 yield decoded_line
     else:
         yield f"Failed to get response from AI: {response.status_code}"
-
-
-def get_chat_response(question: str, chat_history: list, access_token: str, role: str, get_highest_ranking_response: bool = True) -> str:
-    """Send a question to the AI chat API and receive a response."""
-    url = f'{API_URL}/api/v1/chat'
-    headers = {
-        'accept': 'application/json',
-        'Authorization': f'Bearer {access_token}',
-        'Content-Type': 'application/json'
-    }
-    data = {
-        'question': question,
-        'chat_history': chat_history,
-        'get_highest_ranking_response': get_highest_ranking_response,
-        'temperature': 0,
-        "role" : role
-    }
-    print("Data:", data)
-    response = requests.post(url, headers=headers, json=data)
-    if response.status_code == 200:
-        return response.json()['ai_response']
-    else:
-        return "Failed to get response from AI."
-
-
-
 
 def get_files(access_token: str):
     """Retrieve list of files."""
@@ -437,78 +293,8 @@ def upload_file(file_name: str, file_data: bytes, description: str, weight: int,
         "role" : role
     }
     
-    response = requests.post(f'{API_URL}/api/v1/injest_data?file_name={file_name}', headers=headers, json=data)
+    response = requests.post(f'{API_URL}/api/v1/files/ingest?file_name={file_name}', headers=headers, json=data)
     return response.status_code == 200
-
-
-def list_prompts(access_token: str):
-    """List all prompts."""
-    url = f'{API_URL}/api/v1/prompts/list_prompts'
-    headers = {
-        'accept': 'application/json',
-        'Authorization': f'Bearer {access_token}'
-    }
-    response = requests.post(url, headers=headers)
-    print(response.text)
-    if response.status_code == 200:
-        return response.json()['prompts']
-    else:
-        return []
-
-def delete_prompt(prompt_name: str, access_token: str):
-    """Delete a prompt."""
-    url = f'{API_URL}/api/v1/prompts/delete_prompt/{prompt_name}'
-    headers = {
-        'accept': 'application/json',
-        'Authorization': f'Bearer {access_token}'
-    }
-    response = requests.delete(url, headers=headers)
-    print(response.text)
-    return response.status_code == 200, response.json()
-
-def choose_main_prompt(prompt_name: str, access_token: str):
-    """Set a prompt as the main prompt."""
-    url = f'{API_URL}/api/v1/prompts/choose_main_prompt'
-    headers = {
-        'accept': 'application/json',
-        'Authorization': f'Bearer {access_token}',
-        'Content-Type': 'application/json'
-    }
-    data = {'name': prompt_name}
-    response = requests.post(url, headers=headers, json=data)
-    print(response.text)
-    return response.status_code == 200, response.json()
-
-def update_prompt(prompt_name: str, new_content: str, access_token: str):
-    """Update a prompt."""
-    url = f'{API_URL}/api/v1/prompts/update_prompt/{prompt_name}'
-    headers = {
-        'accept': 'application/json',
-        'Authorization': f'Bearer {access_token}',
-        'Content-Type': 'application/json'
-    }
-    data = {'content': new_content}
-    response = requests.post(url, headers=headers, json=data)
-    print(response.text)
-    return response.status_code == 200, response.json()
-
-
-def create_prompt(name: str, content: str, is_main: bool, access_token: str) -> bool:
-    """Create a new prompt."""
-    url = f'{API_URL}/api/v1/prompts/create_prompt'
-    headers = {
-        'accept': 'application/json',
-        'Authorization': f'Bearer {access_token}',
-        'Content-Type': 'application/json'
-    }
-    data = {
-        'name': name,
-        'prompt': content,
-        'is_main': is_main
-    }
-    response = requests.post(url, headers=headers, json=data)
-    print(response.text)
-    return response.status_code == 200, response.json()
 
 def get_access_token(username: str, password: str, client_id: str = '', client_secret: str = '') -> str:
     """Retrieve access token from the authentication server."""

@@ -3,17 +3,14 @@ import websockets
 from typing import Dict, Any, AsyncGenerator
 
 
-
-
-
-
 class OpenAIHandler:
-    def __init__(self, voice: str, system_message: str, openai_api_key: str, temperature: float = 0.8):
+    def __init__(self, voice: str, system_message: str, start_message: str, openai_api_key: str, temperature: float = 0.8):
         self.ws = None
         self.voice = voice
         self.system_message = system_message
         self.temperature = temperature
         self.openai_api_key = openai_api_key
+        self.start_message = start_message
 
     async def connect(self):
         self.ws = await websockets.connect(
@@ -49,7 +46,7 @@ class OpenAIHandler:
                 "content": [
                     {
                         "type": "input_text",
-                        "text": "Greet the user with 'Hello there! I am an AI voice assistant powered by HUbbardAI and the OpenAI Realtime API. You can ask me for facts, jokes, or anything you can imagine. How can I help you?'"
+                        "text": self.start_message
                     }
                 ]
             }

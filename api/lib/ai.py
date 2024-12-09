@@ -1,31 +1,24 @@
 from typing import Dict, List, Optional, Tuple, Union
-from qdrant_client.http.models import OverwritePayloadOperation, SetPayload
-
 from langchain.schema import Document, BaseMessage, AIMessage, HumanMessage, LLMResult
 from langchain_community.document_loaders.unstructured import UnstructuredFileLoader
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.prompts import MessagesPlaceholder, ChatPromptTemplate
-
 from langchain.text_splitter import CharacterTextSplitter
-from langchain.vectorstores.qdrant import Qdrant
 from langchain.chains.llm import LLMChain
 from langchain_openai.embeddings import OpenAIEmbeddings
-from langchain_openai.chat_models import ChatOpenAI
 from langchain.output_parsers import PydanticOutputParser
 from langchain_core.prompts import PromptTemplate
 from langchain.chat_models.base import BaseChatModel
 from langchain.callbacks.base import BaseCallbackHandler
 from langchain_google_firestore import FirestoreVectorStore
-from langchain.document_loaders.base import BaseLoader
-
-
+from langchain_core.document_loaders.base import BaseLoader
+from firebase_admin import credentials, firestore, initialize_app
 from google.cloud.firestore_v1.vector import Vector  # type: ignore
-from . import prompt
-from .database import PromptHandler
+from extractous import Extractor, TesseractOcrConfig, PdfOcrStrategy, PdfParserConfig
 from pydantic import BaseModel, Field, field_validator
-from qdrant_client.http import models as qdrant_models
+from . import prompt
 
-import qdrant_client
+import firebase_admin
 import time
 
 
@@ -78,19 +71,30 @@ class FirestoreVectorStoreModified(FirestoreVectorStore):
 
         return results.get()  
 
+class ExtractousLoader(BaseLoader):
+    def __init__(self, file_path: str) -> None:
+        self.file_path = file_path
+
+    def load(self):
+        pdf_config = PdfParserConfig().set_ocr_strategy(PdfOcrStrategy.NO_OCR)
+        extractor = Extractor().set_ocr_config(TesseractOcrConfig().set_language("eng")).set_pdf_config(pdf_config)
+        data = extractor.extract_file_to_string(self.file_path)
+        return [Document(
+            page_content=data[0]
+        )]
+    
+
 class KnowledgeManager:
     def __init__(
         self,
-        prompt_handler: PromptHandler,
         openai_api_key: str,
         llm: BaseChatModel,
         docs_limit: int = 3500,
-        chunk_size: int = 2000,
+        chunk_size: int = 7000,
         collection_name: str = "books",
     ) -> None:
         self.openai_api_key = openai_api_key
         self.docs_limit = docs_limit
-        self.prompt_handler = prompt_handler
         self.chunk_size = chunk_size
         self.collection_name = collection_name
         self.prompt_variables = [
@@ -102,7 +106,8 @@ class KnowledgeManager:
             "job",
         ]
         self.llm = llm
-            
+        self.vectorstore = self.load_vectorstore(collection_name)
+       
     @staticmethod
     def create_filters(criteria: Dict[str, Union[str, List[str]]]) -> List[Tuple[str, str, Union[str, List[str]]]]:
         filters = []
@@ -136,8 +141,13 @@ class KnowledgeManager:
         if text:
             docs = [Document(page_content=text, metadata=metadata)]
         else:
-            loader = UnstructuredFileLoader(file_path=file_path, strategy="fast")
-            docs = [Document(page_content=doc.page_content, metadata=metadata) for doc in loader.load()]
+            try:
+                loader = ExtractousLoader(file_path=file_path)
+                docs = [Document(page_content=doc.page_content, metadata=metadata) for doc in loader.load()]
+            except Exception:
+                loader = UnstructuredFileLoader(file_path=file_path, strategy="fast")
+                docs = [Document(page_content=doc.page_content, metadata=metadata) for doc in loader.load()]
+            
             splitter = CharacterTextSplitter(chunk_size=self.chunk_size)
             docs = splitter.split_documents(docs)
 
@@ -170,32 +180,26 @@ class KnowledgeManager:
         chat_history: list[tuple[str, str]],
         role: str,
         prefix: str,
-        collection_name: str = None,
         llm: BaseModel = None
     ) -> str:
         if not llm:
             llm = self.llm
-        
-        if not collection_name:
-            collection_name = self.collection_name
 
         start_vectorstore = time.time()
         try:
-            vectorstore = self.load_vectorstore(collection_name)
-            documents = vectorstore.similarity_search(question, k=2, filter=self.create_filters({"role" : [role, "all"]}))
+            documents = self.vectorstore.similarity_search(question, k=3, filter=self.create_filters({"role" : [role, "all"]}))
             if not documents:
                 print(f"Documents not found for role {role}. Defaulting to all data")
-                documents = vectorstore.similarity_search(question, k=2)
+                documents = self.vectorstore.similarity_search(question, k=3)
             documents = self._reduce_tokens_below_limit(documents, self.docs_limit)
         except Exception as e:
-            print("error", e)
             documents = []
 
         print(f"Time taken for data loading: {time.time() - start_vectorstore}")
 
         prompt = self.get_prompt()
         document_chain = create_stuff_documents_chain(llm, prompt)
-        messages = self.format_messages(chat_history, 1000)
+        messages = self.format_messages(chat_history)
         return document_chain.invoke(
             {
                 "context": documents,
@@ -208,55 +212,6 @@ class KnowledgeManager:
             },
             config={"verbose" : True}
         )
-    
-    def chat(
-        self,
-        question: str,
-        chat_history: list[tuple[str, str]],
-        role: str,
-        prefix: str,
-        collection_name: str = None,
-    ) -> str:
-        if not collection_name:
-            collection_name = self.collection_name
-
-        start_vectorstore = time.time()
-        try:
-            vectorstore = self.load_vectorstore(collection_name)
-            documents = vectorstore.similarity_search(
-                question,
-                k=2, 
-                filter=self.create_filters({"role" : [role, "all"]})
-            )
-            if not documents:
-                print(f"Documents not found for role {role}. Defaulting to all data")
-                documents = vectorstore.similarity_search(question, k=2)
-
-            documents = self._reduce_tokens_below_limit(documents, self.docs_limit)
-        except Exception:
-            documents = []
-
-        print(f"Time taken for data loading: {time.time() - start_vectorstore}")
-
-        prompt = self.get_prompt()
-        document_chain = create_stuff_documents_chain(self.llm, prompt)
-        messages = self.format_messages(chat_history)
-        
-        start_chain = time.time()
-        result = document_chain.invoke(
-            {
-                "context": documents,
-                "prompt_prefix" : prefix,
-                "company_role" : role,
-                "messages": [
-                    *messages,
-                    HumanMessage(content=question)
-                ],
-            },
-            config={"verbose" : True}
-        )
-        print(f"Time taken for inference: {time.time() - start_chain}")
-        return result
 
     def format_messages(
         self,
@@ -268,63 +223,57 @@ class KnowledgeManager:
             messages.append(AIMessage(content=ai_msg))
         return messages
 
-    
-    def get_file_metadata(self, id: str, collection_name: Optional[str] = None):
-        if not collection_name:
-            collection_name = self.collection_name
+    def get_file_metadata(self, id: str):
+        # Initialize Firebase if not already initialized
+        if not firebase_admin._apps:
+            cred = credentials.Certificate()
+            initialize_app(cred)
+
+        # Get Firestore client
+        db = firestore.client()
+
+        # Query Firestore collection and get document by id
+        doc_ref = db.collection(self.collection_name).document(id)
+        doc = doc_ref.get()
+
+        if doc.exists:
+            # Access metadata field
+            metadata = doc.to_dict().get('metadata', {})
+            return metadata
+        else:
+            return None
             
-        qdrant = qdrant_client.QdrantClient(
-            url=self.qdrant_url,
-            api_key=self.qdrant_api_key,
-            prefer_grpc=True,
-            timeout=100
-        )    
-        records = qdrant.retrieve(collection_name, [id])
-        if not records:
-            raise ValueError("Record not found!")
-        
-        return records[0].payload.get("metadata", {})
-            
-    def update_metadata(self, ids: List[int], update_dict: Dict[str, str], collection_name: Optional[str] = None):
-        if not collection_name:
-            collection_name = self.collection_name
+    def update_metadata(self, ids: List[str], update_dict: Dict[str, str], collection_name: Optional[str] = None):
+        # Initialize Firebase if not already initialized
+        if not firebase_admin._apps:
+            cred = credentials.Certificate()
+            initialize_app(cred)
 
-        qdrant = qdrant_client.QdrantClient(
-            url=self.qdrant_url,
-            api_key=self.qdrant_api_key,
-            prefer_grpc=True,
-            timeout=100
-        )
-        records = qdrant.retrieve(collection_name, ids)
+        # Get Firestore client
+        db = firestore.client()
 
-        # Check if all records were found
-        if not records or len(records) != len(ids):
-            missing_ids = set(ids) - {record.point_id for record in records}
-            raise ValueError(f"No records found for IDs: {missing_ids}")
+        # Use the provided collection name or default to self.collection_name
+        collection_name = collection_name or self.collection_name
 
-        # Prepare payloads for batch update
-        updates = []
-        for record in records:
-            metadata = record.payload.get("metadata", {})
-            metadata.update(update_dict)  # Update the metadata with new values
-            payload = {
-                "metadata": metadata,
-                "page_content": record.payload.get("page_content")  # Retain existing page content
+        # Create a batch to perform multiple updates
+        batch = db.batch()
+
+        for id in ids:
+            # Get reference to the document
+            doc_ref = db.collection(collection_name).document(id)
+
+            # Prepare the update operation
+            update_operation = {
+                f"metadata.{key}": value for key, value in update_dict.items()
             }
-            
-            updates.append((record.id, payload))
 
-        # Perform a batch update
-        qdrant.batch_update_points(
-            collection_name=collection_name,
-            update_operations=[
-                OverwritePayloadOperation(
-                    overwrite_payload=SetPayload(points=[point_id], payload=payload)
-                )
-                for point_id, payload in updates
-            ]
-        )
-        return "Metadata updated successfully for all specified points."
+            # Add update operation to the batch
+            batch.update(doc_ref, update_operation)
+
+        # Commit the batch
+        batch.commit()
+
+        print(f"Updated metadata for {len(ids)} documents in collection {collection_name}")
 
     def delete_ids(self, ids: list[str]) -> bool:
         vs = self.load_vectorstore(self.collection_name)

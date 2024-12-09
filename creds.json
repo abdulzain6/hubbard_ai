@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "the-mark-academy-app",
+  "private_key_id": "f492f819a57610877ef753d17971e679e06b8acd",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDcy7NIso3l+8hM\nxuU4lN8r2iP4iX37Bqs53J491m1NadH71ouQ+SGKhhBymbS3z76sODr1QZ46+sx+\n8lCDUEKfkwEMx7FoG098H/MF0u2S3Xzrq9DZ1CKi4wxyoza8OT5jsapaFI30QKN5\nB7h6LDDm3A1WNAfg3qqmNsJns2r4QgVUZIrZ87jOjh9hnH5Am0Yuc1UcZPt5Glf9\nLyrg8w7QVrcSI9IV4HFWTL/AhyZJuQQ/vzk4Iu/moXgMa1IDI7uas8Tq+7yEakrp\nCOxxUPGp9zmZR7PEdui0mK1gCqA04Tk16bDPRbYrLTfejb900N1xLlcFw+D8NgJU\nuthqkWQfAgMBAAECggEABGbZrZ3iR7PdFHomAMvFJkxtGDvk3UysWfn0rVk6oWIT\nsCX+bxM63i709XKxUskYyEONyzHCPKR3z/rZe0raQI4pUeOsqV2CojsWrIaqNfxX\nB8BfN01uhOD0hFfwfcutbx83i9FFPV6mrYFng2ncbi3MvVfnviZNV92Sh/2ld5le\nAaxX9K/PbMtD3Omt8MZ/b3Fp8bdPgElJNAr7lWIoozzzyqBT2MCowC62zp4P/6cY\nxo3fS/BMdXeIYw5dZyZ6V3iFWyoIgClZN4WvJgQbYFkJiNp5uS5ozHeOVB0Q/Qxt\nSSs8MPiBUmWC/JAO7HUkyO1GyJB8OSMRioMEUo1i2QKBgQDf+pBukMulKTEUgrS7\nINle+J2mN1WqFZgpCUPvX7tc+YJ0+jJqgqjQ/A0ohEA7bupdcmAm1Mom3K1xppc5\nWj348acCATL9KDQjr0iUzZdm8QzruXHmtxDrVAkUutj0PRjEC0iTMHtuXkLWny0W\n/wTu517vYxmdPfiSjSRkz+OhTQKBgQD8XKOD6m3LJrZ8xBs3jrkTKDlW7GkLgL61\nIsG4vh09LbW3XKIrD1PZKQWvish6K8k/R6kDxmedHpLSx+vZuR+WDpKLmZWg1MXa\nIHrNxfa7sWdV3nJRRZ8d9QrSHqiCsWe/7Zc31eh5D3JFOp790Wgm7KQhFXZG+3dQ\n/oG29JxlGwKBgQDbCzQHPYo7uv4p3e4cd/K9w4yCCum3TikiMNKEnu4g7k8cUbfO\nnHu27ll7/2LF/SItQ3cvYrlUqkrhtBd+2ndzJ/m5pyyTkqbzIzBrfmkMHsARJKp1\nBSIB04yR/m3A5qN6zsIqWKbN+FeLh95T+BF+Bz68BQH+2qVnxasLAJjQnQKBgEoJ\nd6Ns9HckTWd/NSjwg1WeeGwLAapxRAHqR4FGrVdUgLphv+X4IjZUtalRgw1sqSca\ng/hqjd1nqdWS95uxlxW0AsRX87Dym3UqED0sdf2Mx29Gyq0TSuJEEL+iZPeqynBh\naPrlk8VohbLPxvNaKz84L9LQ9BlRDylA8ZdWXke/AoGBAIDgMzUAnnsIzkAHAB9p\n5Rgh4276wAZZpwokowts9a1Ivze3I2H/rgEuc1Bd3C6/5VgObbqtC6eFMsjos1ae\nvvl+pwQgobM/ptHbF6jQxXEwuguCCq6Zvn44vnn/Y1q1F12kh1U/QyllbWfMVN4P\ne5HMuRLPsS5ZS+PXtWV7mHGB\n-----END PRIVATE KEY-----\n",
+  "client_email": "firebase-adminsdk-ullng@the-mark-academy-app.iam.gserviceaccount.com",
+  "client_id": "111454251792186820026",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-ullng%40the-mark-academy-app.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

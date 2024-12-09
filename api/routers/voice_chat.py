@@ -1,7 +1,9 @@
+import os
 from fastapi import APIRouter
 from fastapi import WebSocket
 from fastapi.websockets import WebSocketDisconnect
 from ..lib.voice_mode import OpenAIHandler
+from ..lib.prompt import DEFAULT_PROMPT_VOICE, STARTER_MESSAGE
 import json
 import base64
 import asyncio
@@ -21,7 +23,12 @@ async def handle_media_stream(websocket: WebSocket):
     print("Client connected")
     await websocket.accept()
 
-    openai_handler = OpenAIHandler()
+    openai_handler = OpenAIHandler(
+        voice="alloy", 
+        system_message=DEFAULT_PROMPT_VOICE, 
+        openai_api_key=os.getenv("OPENAI_API_KEY"),
+        start_message=STARTER_MESSAGE
+    )
     await openai_handler.connect()
 
     async def receive_audio_from_user():

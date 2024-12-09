@@ -1,18 +1,14 @@
 import streamlit as st
-from components import login, dashboard_page, files, ai_chat, prompts, roles, user_management, response_ranking, scenarios, voice_chat
+from components import login, files, ai_chat, roles, scenarios, voice_chat
 
 # Define a dictionary of pages
 PAGES = {
     "Login": login.main,
-    "Dashboard": dashboard_page.main,
     "Files" : files.main,
     "AI Chat" : ai_chat.main,
-    "Prompt Templates" : prompts.main,
     "Role Management" : roles.main,
-    "User Management" : user_management.main,
-    "Response Ranking" : response_ranking.main,
     "Scenarios": scenarios.main,
-  #  "Voice chat": voice_chat.main
+    "Voice Chat" : voice_chat.main
 }
 
 

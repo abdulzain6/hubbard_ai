@@ -35,7 +35,7 @@ def main():
         new_prompt_prefix = st.text_area("Prompt Prefix", height=700)
         submit_button = st.form_submit_button("Add Role")
         if submit_button:
-            if not role or not new_prompt_prefix:
+            if not new_name or not new_prompt_prefix:
                 st.error("Failed to add role. You must fill all fields.")
             if add_role(new_name, new_prompt_prefix, access_token):
                 st.success(f"Role {new_name} added successfully!")

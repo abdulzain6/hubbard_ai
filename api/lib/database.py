@@ -1,9 +1,8 @@
-import logging
 import firebase_admin
-from datetime import datetime
 from typing import List, Optional
 from pydantic import BaseModel, Field
 from firebase_admin import credentials, initialize_app, firestore
+
 
 class FileModel(BaseModel):
     file_name: str = Field(..., description="Unique identifier for the file")

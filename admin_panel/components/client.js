@@ -65,7 +65,7 @@ class VoiceAssistant {
 }
 
     connectWebSocket() {
-        this.socket = new WebSocket('ws://localhost:5050/media-stream');
+        this.socket = new WebSocket('ws://localhost:8000/api/v1/voice-ai/media-stream');
         this.socket.onopen = () => {
             console.log('WebSocket connected');
         };
