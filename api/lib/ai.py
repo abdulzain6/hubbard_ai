@@ -14,7 +14,6 @@ from langchain_google_firestore import FirestoreVectorStore
 from langchain_core.document_loaders.base import BaseLoader
 from firebase_admin import credentials, firestore, initialize_app
 from google.cloud.firestore_v1.vector import Vector  # type: ignore
-from extractous import Extractor, TesseractOcrConfig, PdfOcrStrategy, PdfParserConfig
 from pydantic import BaseModel, Field, field_validator
 from . import prompt
 
@@ -71,18 +70,6 @@ class FirestoreVectorStoreModified(FirestoreVectorStore):
 
         return results.get()  
 
-class ExtractousLoader(BaseLoader):
-    def __init__(self, file_path: str) -> None:
-        self.file_path = file_path
-
-    def load(self):
-        pdf_config = PdfParserConfig().set_ocr_strategy(PdfOcrStrategy.NO_OCR)
-        extractor = Extractor().set_ocr_config(TesseractOcrConfig().set_language("eng")).set_pdf_config(pdf_config)
-        data = extractor.extract_file_to_string(self.file_path)
-        return [Document(
-            page_content=data[0]
-        )]
-    
 
 class KnowledgeManager:
     def __init__(
@@ -141,13 +128,8 @@ class KnowledgeManager:
         if text:
             docs = [Document(page_content=text, metadata=metadata)]
         else:
-            try:
-                loader = ExtractousLoader(file_path=file_path)
-                docs = [Document(page_content=doc.page_content, metadata=metadata) for doc in loader.load()]
-            except Exception:
-                loader = UnstructuredFileLoader(file_path=file_path, strategy="fast")
-                docs = [Document(page_content=doc.page_content, metadata=metadata) for doc in loader.load()]
-            
+            loader = UnstructuredFileLoader(file_path=file_path, strategy="fast")
+            docs = [Document(page_content=doc.page_content, metadata=metadata) for doc in loader.load()]
             splitter = CharacterTextSplitter(chunk_size=self.chunk_size)
             docs = splitter.split_documents(docs)
 

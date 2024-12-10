@@ -3,7 +3,7 @@ import logging, tempfile
 import os
 from fastapi import APIRouter, Body, Depends, HTTPException
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from api.auth import UserInfo, get_user_id_and_role
+from api.auth import UserInfo, get_admin_user
 from api.globals import manager
 from pydantic import BaseModel
 from typing import Any, Dict, List, Optional
@@ -25,7 +25,7 @@ class IngestModel(BaseModel):
 def ingest_data(
     file_name: str,
     data: IngestModel,
-    user: UserInfo = Depends(get_user_id_and_role)
+    user: UserInfo = Depends(get_admin_user)
 ) -> dict:
     
     file_manager = FileManager(user.user_id)
@@ -91,7 +91,7 @@ def ingest_data(
 def update_metadata_endpoint(
     file_name: str, 
     metadata: Dict[str, Any] = Body(...), 
-    user: UserInfo = Depends(get_user_id_and_role)
+    user: UserInfo = Depends(get_admin_user)
 ):
     file_manager = FileManager(user_id=user.user_id)
 
@@ -111,7 +111,7 @@ def update_metadata_endpoint(
         raise HTTPException(status_code=500, detail="An error occurred during the operation")
     
 @router.get("/metadata", response_model=Dict)
-def get_all_files_metadata(user: UserInfo = Depends(get_user_id_and_role)):
+def get_all_files_metadata(user: UserInfo = Depends(get_admin_user)):
     try:
         file_manager = FileManager(user_id=user.user_id)
         files = file_manager.get_all_files()
@@ -136,7 +136,7 @@ def get_all_files_metadata(user: UserInfo = Depends(get_user_id_and_role)):
         raise HTTPException(status_code=500, detail="An error occurred during the operation")
 
 @router.get("/", response_model=List[Dict])
-def get_all_files(user: UserInfo = Depends(get_user_id_and_role)):
+def get_all_files(user: UserInfo = Depends(get_admin_user)):
     try:
         file_manager = FileManager(user_id=user.user_id)
         files = file_manager.get_all_files()
@@ -146,7 +146,7 @@ def get_all_files(user: UserInfo = Depends(get_user_id_and_role)):
         raise HTTPException(status_code=500, detail="Failed to retrieve files")
 
 @router.delete("/{file_name}", response_model=Dict)
-def delete_file(file_name: str, user: UserInfo = Depends(get_user_id_and_role)):
+def delete_file(file_name: str, user: UserInfo = Depends(get_admin_user)):
     try:
         file_manager = FileManager(user_id=user.user_id)
 

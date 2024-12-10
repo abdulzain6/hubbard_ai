@@ -5,7 +5,7 @@ import threading
 from typing import Generator
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
-from api.auth import get_user_id_and_role, UserInfo
+from api.auth import get_user_id_and_role, UserInfo, get_admin_user
 from api.globals import scenario_manager, manager, GLOBAL_MODEL
 from api.lib.ai import CustomCallback, Scenario, ScenarioEvaluationResult, split_into_chunks
 from api.lib.database import SalesRoleplayScenarioManager, ScenarioModel, FileManager
@@ -30,7 +30,7 @@ class EvaluateScenarioRequest(BaseModel):
 
 
 @router.post("/add_scenario", response_model=ScenarioModel)
-def add_scenario(request: ScenarioModel, user_data: UserInfo = Depends(get_user_id_and_role)):
+def add_scenario(request: ScenarioModel, user_data: UserInfo = Depends(get_admin_user)):
     scenario_database = SalesRoleplayScenarioManager()
     file_manager = FileManager(user_id=user_data.user_id)
     file_existence = file_manager.check_files_exist(request.file_names)
@@ -150,7 +150,7 @@ def get_scenario(
 def update_scenario(
     name: str, 
     attributes: ScenarioModel, 
-    user_data: UserInfo = Depends(get_user_id_and_role)
+    user_data: UserInfo = Depends(get_admin_user)
 ):
     scenario_database = SalesRoleplayScenarioManager()
     file_manager = FileManager(user_id=user_data.user_id)
@@ -174,7 +174,7 @@ def update_scenario(
     raise HTTPException(status_code=404, detail="Scenario not found")
 
 @router.delete("/delete_scenario/{name}", response_model=dict)
-def delete_scenario(name: str, user_data: UserInfo = Depends(get_user_id_and_role)):
+def delete_scenario(name: str, user_data: UserInfo = Depends(get_admin_user)):
     scenario_database = SalesRoleplayScenarioManager()
     scenario = scenario_database.get_scenario_by_name(name)
     if scenario:

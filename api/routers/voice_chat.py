@@ -1,7 +1,9 @@
 import os
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from fastapi import WebSocket
 from fastapi.websockets import WebSocketDisconnect
+
+from ..auth import get_user_id_and_role
 from ..lib.voice_mode import OpenAIHandler
 from ..lib.prompt import DEFAULT_PROMPT_VOICE, STARTER_MESSAGE
 import json
@@ -19,7 +21,7 @@ app = APIRouter()
 
 
 @app.websocket("/media-stream")
-async def handle_media_stream(websocket: WebSocket):
+async def handle_media_stream(websocket: WebSocket, _ = Depends(get_user_id_and_role)):
     print("Client connected")
     await websocket.accept()
 
