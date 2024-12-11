@@ -1,7 +1,7 @@
 import os
-from fastapi import APIRouter, Depends
-from fastapi import WebSocket
+from fastapi import APIRouter, WebSocket
 from fastapi.websockets import WebSocketDisconnect
+from fastapi.security import HTTPAuthorizationCredentials
 
 from ..auth import get_user_id_and_role
 from ..lib.voice_mode import OpenAIHandler
@@ -10,21 +10,28 @@ import json
 import base64
 import asyncio
 
-LOG_EVENT_TYPES = [
-    'error', 'response.content.done', 'rate_limits.updated',
-    'response.done', 'input_audio_buffer.committed',
-    'input_audio_buffer.speech_stopped', 'input_audio_buffer.speech_started',
-    'session.created'
-]
 
 app = APIRouter()
 
-
 @app.websocket("/media-stream")
-async def handle_media_stream(websocket: WebSocket, _ = Depends(get_user_id_and_role)):
+async def handle_media_stream(websocket: WebSocket):
     print("Client connected")
     await websocket.accept()
 
+    try:
+        message = await websocket.receive_json()
+        if 'token' not in message:
+            await websocket.close(code=4000)
+            return
+
+        token = message['token']
+        user = get_user_id_and_role(HTTPAuthorizationCredentials(scheme="Bearer", credentials=token))
+    except Exception as e:
+        print(f"Authentication failed: {str(e)}")
+        await websocket.close(code=4001)
+        return
+
+    print("Authentication Successful")
     openai_handler = OpenAIHandler(
         voice="alloy", 
         system_message=DEFAULT_PROMPT_VOICE, 
@@ -46,18 +53,22 @@ async def handle_media_stream(websocket: WebSocket, _ = Depends(get_user_id_and_
     async def send_audio_to_user():
         try:
             async for response in openai_handler.receive_events():
-                if response['type'] in LOG_EVENT_TYPES:
+                if response['type'] not in ["response.audio.delta", "response.audio_transcript.delta"]:
                     print(f"Received event: {response['type']}", response)
 
                 if response.get('type') == 'response.audio.delta' and 'delta' in response:
                     audio_payload = base64.b64encode(base64.b64decode(response['delta'])).decode('utf-8')
                     audio_delta = {
+                        "type" : "audio",
                         "payload": audio_payload
                     }
                     await websocket.send_json(audio_delta)
+
+                if response.get('type') == 'input_audio_buffer.speech_started':
+                    print("sent speech started")
+                    await websocket.send_json({"type": "speech_started"})
 
         except Exception as e:
             print(f"Error in send_audio_to_user: {e}")
 
     await asyncio.gather(receive_audio_from_user(), send_audio_to_user())
-
