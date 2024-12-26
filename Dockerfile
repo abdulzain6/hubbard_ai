@@ -2,13 +2,22 @@ FROM python:3.11-slim
 
 WORKDIR /var/task
 
-RUN yum update -y && \
-    yum install -y libmagic poppler-utils tesseract libxml2-devel libxslt-devel && \
-    yum clean all
-
+RUN apt-get update && \
+    apt-get install -y \
+    libmagic1 \
+    poppler-utils \
+    tesseract-ocr \
+    libxml2-dev \
+    libxslt-dev \
+    antiword \
+    abiword \
+    unrtf \
+    libjpeg-dev \
+    pstotext && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 COPY api/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-RUN yum install antiword abiword unrtf poppler-utils libjpeg-dev tesseract-ocr pstotext
 RUN pip install fulltext
 COPY . .
 
