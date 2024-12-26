@@ -2,7 +2,6 @@ venv
 .vscode
 .pytest_cache
 database.db
-.env
 data
 tests/
 tests
