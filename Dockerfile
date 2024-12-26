@@ -1,4 +1,4 @@
-FROM public.ecr.aws/lambda/python:3.11
+FROM python:3.11-slim
 
 WORKDIR /var/task
 
@@ -12,4 +12,4 @@ RUN yum install antiword abiword unrtf poppler-utils libjpeg-dev tesseract-ocr p
 RUN pip install fulltext
 COPY . .
 
-CMD ["api.main.mangum_app"]
+CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
