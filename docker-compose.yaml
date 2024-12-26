@@ -23,8 +23,8 @@ services:
       dockerfile: Dockerfile
     restart: always
     environment:
-      - API_URL=https://nsatxm27naon62t7bdh5t744pa0mzytx.lambda-url.eu-west-1.on.aws
-      - WS_URL=wss://.lambda-url.eu-west-1.on.aws/api/v1/voice-ai/media-stream
+      - API_URL=http://52.60.200.129
+      - WS_URL=ws://52.60.200.129/api/v1/voice-ai/media-stream
     ports:
       - "8501:8501"
     volumes:
