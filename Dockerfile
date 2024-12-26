@@ -12,8 +12,7 @@ RUN apt-get update && \
     antiword \
     abiword \
     unrtf \
-    libjpeg-dev \
-    pstotext && \
+    libjpeg-dev && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 COPY api/requirements.txt .
