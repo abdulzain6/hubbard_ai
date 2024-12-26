@@ -44,7 +44,7 @@ services:
     restart: always
     environment:
       - API_URL=http://52.60.200.129
-      - WS_URL=ws://52.60.200.129/api/v1/voice-ai/media-stream
+      - WS_URL=wss://52.60.200.129/api/v1/voice-ai/media-stream
     expose:
       - "8501"
     volumes:
