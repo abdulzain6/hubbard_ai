@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .routers import chat, scenarios, tts_stt, roles, files, voice_chat
 from .middleware.error_handler import TracebackMiddleware
-import logging, mangum
+import logging, mangum, uvicorn
 
 logging.basicConfig(level=logging.INFO)
 
@@ -29,3 +29,12 @@ app.include_router(files.router, prefix="/api/v1/files")
 app.include_router(voice_chat.app, prefix="/api/v1/voice-ai")
 
 mangum_app = mangum.Mangum(app=app)
+
+if __name__ == "__main__":
+    uvicorn.run(
+        app,
+        host="0.0.0.0",
+        port=8000,
+        ssl_keyfile="./key.pem",
+        ssl_certfile="./cert.pem"
+    )

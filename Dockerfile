@@ -20,4 +20,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install fulltext
 COPY . .
 
-CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000", "--ssl-keyfile", "./key.pem", "--ssl-certfile", "./cert.pem"]
+CMD ["python", "-m", "api.main"]
