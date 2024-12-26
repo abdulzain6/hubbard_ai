@@ -26,8 +26,8 @@ services:
       context: .
       dockerfile: Dockerfile
     restart: always
-    ports:
-      - "80:8000"
+    expose:
+      - "8000"
     environment:
       - OPENAI_API_KEY=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
       - JWT_SECRET_KEY=%#$#&@#@2525
@@ -45,7 +45,7 @@ services:
     environment:
       - API_URL=http://52.60.200.129
       - WS_URL=ws://52.60.200.129/api/v1/voice-ai/media-stream
-    ports:
-      - "8501:8501"
+    expose:
+      - "8501"
     volumes:
       - ./admin_panel:/usr/src/app
