@@ -321,6 +321,7 @@ def get_access_token(email: str, password: str) -> str:
         'Content-Type': 'application/json'
     }
     response = requests.post(url, json=data, headers=headers)
+    print(response.text)
     if response.status_code == 200:
         response_data = response.json()
         if response_data.get('success'):

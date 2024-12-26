@@ -9,9 +9,9 @@ services:
     ports:
       - "80:8000"
     environment:
-      - OPENAI_API_KEY="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"
-      - JWT_SECRET_KEY="%#$#&@#@2525"
-      - DEEPGRAM_API_KEY="852e1c4d4bd0e312338580897df7168ff6c738e3"
+      - OPENAI_API_KEY=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
+      - JWT_SECRET_KEY=%#$#&@#@2525
+      - DEEPGRAM_API_KEY=852e1c4d4bd0e312338580897df7168ff6c738e3
       - GOOGLE_APPLICATION_CREDENTIALS=creds.json
     volumes:
       - ./api:/var/task/api
