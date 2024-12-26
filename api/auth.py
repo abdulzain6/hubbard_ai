@@ -34,7 +34,7 @@ def decode_token(token: str) -> dict:
 
 def get_user_info(token_info: dict) -> UserInfo:
     user_id = str(token_info.get("id"))
-    role = "admin" if token_info.get("roleId") == 1 else "user"
+    role = "admin"
     first_name = token_info.get("first_name")
     last_name = token_info.get("last_name")
     email = token_info.get("email")

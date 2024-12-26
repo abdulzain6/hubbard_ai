@@ -2,6 +2,7 @@ from langchain.globals import set_verbose
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .routers import chat, scenarios, tts_stt, roles, files, voice_chat
+from .middleware.error_handler import TracebackMiddleware
 import logging, mangum
 
 logging.basicConfig(level=logging.INFO)
@@ -9,12 +10,15 @@ logging.basicConfig(level=logging.INFO)
 set_verbose(True)
 
 app = FastAPI()
+
+app.add_middleware(TracebackMiddleware)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins
+    allow_origins=["*"], 
     allow_credentials=True,
-    allow_methods=["*"],  # Allow all methods (including "OPTIONS")
-    allow_headers=["*"],  # Allow all headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 app.include_router(chat.router, prefix="/api/v1/chat")

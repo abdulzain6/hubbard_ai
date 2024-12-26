@@ -7,7 +7,7 @@ from api.lib.database import RoleManager, RoleModel
 router = APIRouter()
 
 
-@router.post("/")
+@router.post("/new")
 def add_role(data: RoleInput, user: UserInfo = Depends(get_admin_user)):
     role_manager = RoleManager()
 
@@ -22,7 +22,7 @@ def add_role(data: RoleInput, user: UserInfo = Depends(get_admin_user)):
     )
     return {"status": "Role Successfully Added!"}    
 
-@router.get("/")
+@router.get("/all")
 def get_roles(user: UserInfo = Depends(get_user_id_and_role)):
     role_manager = RoleManager()
     roles = role_manager.get_all_roles()

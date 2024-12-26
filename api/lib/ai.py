@@ -1,6 +1,5 @@
 from typing import Dict, List, Optional, Tuple, Union
 from langchain.schema import Document, BaseMessage, AIMessage, HumanMessage, LLMResult
-from langchain_community.document_loaders.unstructured import UnstructuredFileLoader
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.prompts import MessagesPlaceholder, ChatPromptTemplate
 from langchain.text_splitter import CharacterTextSplitter
@@ -19,7 +18,7 @@ from . import prompt
 
 import firebase_admin
 import time
-
+import fulltext
 
 
 
@@ -76,7 +75,7 @@ class KnowledgeManager:
         self,
         openai_api_key: str,
         llm: BaseChatModel,
-        docs_limit: int = 3500,
+        docs_limit: int = 25000,
         chunk_size: int = 7000,
         collection_name: str = "books",
     ) -> None:
@@ -128,8 +127,8 @@ class KnowledgeManager:
         if text:
             docs = [Document(page_content=text, metadata=metadata)]
         else:
-            loader = UnstructuredFileLoader(file_path=file_path, strategy="fast")
-            docs = [Document(page_content=doc.page_content, metadata=metadata) for doc in loader.load()]
+            text = fulltext.get(file_path, None)
+            docs = [Document(page_content=text, metadata=metadata)]
             splitter = CharacterTextSplitter(chunk_size=self.chunk_size)
             docs = splitter.split_documents(docs)
 
@@ -173,11 +172,10 @@ class KnowledgeManager:
             if not documents:
                 print(f"Documents not found for role {role}. Defaulting to all data")
                 documents = self.vectorstore.similarity_search(question, k=3)
-            documents = self._reduce_tokens_below_limit(documents, self.docs_limit)
         except Exception as e:
             documents = []
 
-        print(f"Time taken for data loading: {time.time() - start_vectorstore}")
+        print(f"Time taken for data loading: {time.time() - start_vectorstore} {len(documents)}")
 
         prompt = self.get_prompt()
         document_chain = create_stuff_documents_chain(llm, prompt)

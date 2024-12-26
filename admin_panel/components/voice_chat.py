@@ -12,7 +12,7 @@ def main():
 
     # Load JavaScript file
     with open(os.path.join(current_dir, "client.js"), "r") as file:
-        js_content = file.read()
+        js_content = file.read().replace("REPLACE_WS_URL", os.getenv("WS_URL"))
 
     # Combine HTML and JavaScript
     combined_content = f"{html_content}<script>{js_content}</script>"

@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - OPENAI_API_KEY="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"
+      - JWT_SECRET_KEY="%#$#&@#@2525"
+      - DEEPGRAM_API_KEY="852e1c4d4bd0e312338580897df7168ff6c738e3"
+      - GOOGLE_APPLICATION_CREDENTIALS=creds.json
+    volumes:
+      - ./api:/var/task/api
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
+
+  admin_panel:
+    build:
+      context: ./admin_panel
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      - API_URL=https://nsatxm27naon62t7bdh5t744pa0mzytx.lambda-url.eu-west-1.on.aws
+      - WS_URL=wss://.lambda-url.eu-west-1.on.aws/api/v1/voice-ai/media-stream
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./admin_panel:/usr/src/app

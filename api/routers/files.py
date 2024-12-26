@@ -135,7 +135,7 @@ def get_all_files_metadata(user: UserInfo = Depends(get_admin_user)):
         logging.error(f"Error in get_all_files_metadata: {e}")
         raise HTTPException(status_code=500, detail="An error occurred during the operation")
 
-@router.get("/", response_model=List[Dict])
+@router.get("/all", response_model=List[Dict])
 def get_all_files(user: UserInfo = Depends(get_admin_user)):
     try:
         file_manager = FileManager(user_id=user.user_id)
