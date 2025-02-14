@@ -1,7 +1,7 @@
 import uuid
 import firebase_admin
 from typing import List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from firebase_admin import credentials, initialize_app, firestore
 
 
@@ -12,10 +12,25 @@ class FileModel(BaseModel):
     vector_ids: List[str] = Field(default_factory=list, description="List of vector IDs")
 
 class ScenarioModel(BaseModel):
-    name: str = Field(..., description="Unique identifier for the scenario")
-    prompt: str = Field(..., description="Prompt for the scenario")
-    file_names: List[str] = Field(..., description="List of file names associated with the scenario")
+    name: str = Field(..., json_schema_extra={"description": "A name for the scenario", "example": "Scenario 1"})
+    description: str = Field(..., json_schema_extra={"description": "Short description for the scenario"})
+    best_response: str = Field(..., json_schema_extra={"description": "The solution for the scenario"})
+    explanation: str = Field(..., json_schema_extra={"description": "Why the solution was correct"})
+    difficulty: str = Field(..., json_schema_extra={"description": "The difficulty of the question from A to C, C being the most difficult"})
+    importance: str = Field(..., json_schema_extra={"description": "The importance of the question from 1 to 3. 1 being the most imporant"})
 
+    @field_validator("difficulty")
+    def difficulty_range(cls, field):
+        if field not in ["A", "B", "C"]:
+            raise ValueError("Difficulty must be from A-C")
+        return field
+    
+    @field_validator("importance")
+    def importance_range(cls, field):
+        if field not in ["1", "2", "3"]:
+            raise ValueError("IMportance must be from 1 to 3")
+        return field
+    
 class RoleModel(BaseModel):
     name: str = Field(..., description="Unique identifier for the role")
     prompt_prefix: str = Field(..., description="Prompt prefix for the role")
